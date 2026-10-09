@@ -175,10 +175,10 @@ def fallback_queries(profile: dict) -> list[str]:
     """
     keywords = [k for k in (profile.get("keywords") or []) if k]
     fallback = keywords[:4]
-    if profile.get("field"):
-        fallback.append(profile["field"])
-    if profile.get("methods"):
-        fallback.append(profile["methods"])
+    for key in ("research_direction", "field", "methods"):
+        if profile.get(key):
+            fallback.append(profile[key])
+    fallback.extend(profile.get("discipline_names") or [])
     return [q.strip() for q in fallback if q and q.strip()][:6]
 
 
@@ -191,8 +191,11 @@ def gen_queries(db, profile: dict) -> list[str]:
         utils.log_event(db, "llm", "WARNING", "LLM 未配置，使用关键词拼接生成检索词")
         return fallback_queries(profile)
     keywords = [k for k in (profile.get("keywords") or []) if k]
+    discipline_names = ", ".join(profile.get("discipline_names") or [])
     user_prompt = (
         "用户研究档案：\n"
+        f"- 学科：{discipline_names}\n"
+        f"- 研究方向：{profile.get('research_direction', '')}\n"
         f"- 研究领域：{profile.get('field', '')}\n"
         f"- 当前研究问题：{profile.get('research_problem', '')}\n"
         f"- 关注方法：{profile.get('methods', '')}\n"

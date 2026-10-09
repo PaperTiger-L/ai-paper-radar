@@ -47,7 +47,9 @@ class Subscriber(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     email: Mapped[str] = mapped_column(String(256), unique=True, index=True, nullable=False)
-    field: Mapped[str] = mapped_column(String(256), default="")  # 研究领域
+    field: Mapped[str] = mapped_column(String(256), default="")  # 研究领域（旧字段，保留兼容；新画像用 disciplines + research_direction）
+    disciplines: Mapped[list] = mapped_column(JSON, default=list)  # 学科 id 数组，如 ["cs_ai", "math"]
+    research_direction: Mapped[str] = mapped_column(Text, default="")  # 研究方向（一句话）
     research_problem: Mapped[str] = mapped_column(Text, default="")  # 当前研究问题（自然语言）
     methods: Mapped[str] = mapped_column(String(512), default="")  # 关注的研究方法
     keywords: Mapped[list] = mapped_column(JSON, default=list)  # 关键词数组

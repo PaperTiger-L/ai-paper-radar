@@ -26,6 +26,7 @@ from .. import utils
 from ..database import SessionLocal
 from ..models import DigestRun, Paper, Recommendation, Subscriber
 from . import emailer, llm as llm_service, search as search_service
+from . import venues as venues_service
 
 # ---------------------------------------------------------------------------
 # 任务进度注册表（进程内；单机部署足够）
@@ -131,23 +132,54 @@ def _worker(job_id: str, subscriber_ids: list[int] | None, send_email: bool, for
 
 
 def _has_searchable_profile(profile: dict) -> bool:
-    """画像是否有可用于检索的信息（领域/研究问题/方法/关键词任一非空）。"""
-    for key in ("field", "research_problem", "methods"):
+    """画像是否有可用于检索的信息（学科/研究方向/研究问题/方法/关键词任一非空）。"""
+    for key in ("field", "research_problem", "methods", "research_direction"):
         if (profile.get(key) or "").strip():
             return True
+    if profile.get("disciplines"):
+        return True
     return any((k or "").strip() for k in (profile.get("keywords") or []))
 
 
 def _profile_of(sub: Subscriber) -> dict:
+    disciplines = list(sub.disciplines or [])
     return {
         "name": sub.name,
         "field": sub.field or "",
+        "disciplines": disciplines,
+        "discipline_names": venues_service.discipline_names(disciplines),
+        "research_direction": sub.research_direction or "",
         "research_problem": sub.research_problem or "",
         "methods": sub.methods or "",
         "keywords": list(sub.keywords or []),
         "venues": list(sub.venues or []),
+        "arxiv_prefixes": venues_service.arxiv_prefixes_for(disciplines),
         "papers_per_week": sub.papers_per_week or 8,
     }
+
+
+def _apply_venue_filter(db, tag: str, profile: dict,
+                        candidates: list) -> list:
+    """硬过滤：只保留所选刊会（或 arXiv 指定分类）范围内的候选论文。
+
+    在 LLM 打分之前执行，省掉被滤掉论文的 LLM 调用。
+    未选任何刊会时不限制（兜底，避免画像不全的用户直接空周报）。
+    """
+    selected = [v for v in (profile.get("venues") or []) if v and v.strip()]
+    if not selected:
+        return candidates
+    prefixes = profile.get("arxiv_prefixes") or []
+    kept = [
+        c for c in candidates
+        if venues_service.venue_allowed(
+            c.venue, c.is_preprint, getattr(c, "categories", None),
+            selected, prefixes)
+    ]
+    dropped = len(candidates) - len(kept)
+    if dropped:
+        utils.log_event(db, "pipeline", "INFO",
+                        f"{tag} 刊会硬过滤：{len(candidates)} -> {len(kept)}（滤掉 {dropped} 篇不在所选刊会范围）")
+    return kept
 
 
 def _process_subscriber(db, job_id: str, sub: Subscriber, send_email: bool, force: bool,
@@ -171,7 +203,7 @@ def _process_subscriber(db, job_id: str, sub: Subscriber, send_email: bool, forc
     # 1.5 用户画像为空则跳过：避免用宽泛词硬搜一轮后发"信息不足"的空邮件
     if not _has_searchable_profile(_profile_of(sub)):
         utils.log_event(db, "pipeline", "WARNING",
-                        f"{tag} 用户画像为空（研究领域/研究问题/方法/关键词均未填写），本周跳过")
+                        f"{tag} 用户画像为空（学科/研究方向/研究问题/方法/关键词均未填写），本周跳过")
         return
 
     run = DigestRun(subscriber_id=sub.id, week_start=ws, status="running",
@@ -201,6 +233,10 @@ def _process_subscriber(db, job_id: str, sub: Subscriber, send_email: bool, forc
         candidates = search_service.search_all(queries, db)
         run.papers_found = len(candidates)
         db.commit()
+
+        # 3.5 刊会硬过滤（在 LLM 打分前执行，省掉无关论文的 LLM 调用）
+        _progress(35, "按所选刊会过滤")
+        candidates = _apply_venue_filter(db, tag, profile, candidates)
 
         # 4. LLM 打分筛选
         _progress(50, "筛选论文")

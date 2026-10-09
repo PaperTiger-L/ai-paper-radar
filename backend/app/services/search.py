@@ -44,6 +44,7 @@ class PaperCandidate:
     abstract: str = ""
     source: str = ""  # openalex / arxiv
     is_preprint: bool = False
+    categories: list[str] = field(default_factory=list)  # arXiv 分类，如 ["cs.AI", "cs.CL"]
 
 
 # ---------------------------------------------------------------------------
@@ -197,6 +198,11 @@ def _fetch_arxiv_once(query: str, since: dt.date) -> list[PaperCandidate]:
             ]
             authors = [a for a in authors if a]
             abstract = re.sub(r"\s+", " ", entry.findtext("a:summary", default="", namespaces=_ARXIV_NS) or "").strip()
+            categories = [
+                (c.get("term") or "").strip()
+                for c in entry.findall("a:category", _ARXIV_NS)
+            ]
+            categories = [c for c in categories if c]
             candidates.append(
                 PaperCandidate(
                     external_id=f"arxiv:{arxiv_id}",
@@ -208,6 +214,7 @@ def _fetch_arxiv_once(query: str, since: dt.date) -> list[PaperCandidate]:
                     abstract=abstract,
                     source="arxiv",
                     is_preprint=True,
+                    categories=categories,
                 )
             )
         except Exception:

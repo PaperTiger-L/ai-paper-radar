@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, errorMessage } from '../api';
-import type { Subscriber, VenueLists } from '../types';
+import type { Discipline, Subscriber, VenueLibrary } from '../types';
 import {
   Badge,
   Button,
@@ -19,7 +19,8 @@ import {
 interface FormState {
   name: string;
   email: string;
-  field: string;
+  disciplines: string[];
+  research_direction: string;
   research_problem: string;
   methods: string;
   keywords: string[];
@@ -32,7 +33,8 @@ interface FormState {
 const emptyForm: FormState = {
   name: '',
   email: '',
-  field: '',
+  disciplines: [],
+  research_direction: '',
   research_problem: '',
   methods: '',
   keywords: [],
@@ -47,7 +49,8 @@ function toForm(s?: Subscriber): FormState {
   return {
     name: s.name,
     email: s.email,
-    field: s.field,
+    disciplines: [...(s.disciplines ?? [])],
+    research_direction: s.research_direction ?? '',
     research_problem: s.research_problem,
     methods: s.methods ?? '',
     keywords: [...(s.keywords ?? [])],
@@ -56,6 +59,29 @@ function toForm(s?: Subscriber): FormState {
     papers_per_week: s.papers_per_week ?? 8,
     enabled: s.enabled,
   };
+}
+
+/** 刊会库中全部刊会名集合（用于区分用户自定义项） */
+function libraryVenueNames(lib: VenueLibrary | null): Set<string> {
+  const s = new Set<string>();
+  for (const d of lib?.disciplines ?? []) for (const v of d.venues) s.add(v.name);
+  return s;
+}
+
+/** 所选学科的全部刊会名（去重保序） */
+function unionVenues(lib: VenueLibrary | null, disciplineIds: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const map = new Map((lib?.disciplines ?? []).map((d) => [d.id, d]));
+  for (const id of disciplineIds) {
+    for (const v of map.get(id)?.venues ?? []) {
+      if (!seen.has(v.name)) {
+        seen.add(v.name);
+        out.push(v.name);
+      }
+    }
+  }
+  return out;
 }
 
 /** 关键词标签输入：回车/逗号添加，点击 × 删除 */
@@ -118,26 +144,82 @@ function KeywordTags({
   );
 }
 
+/** 学科多选：按门类分组展示 */
+function DisciplinePicker({
+  library,
+  value,
+  onToggle,
+}: {
+  library: VenueLibrary | null;
+  value: string[];
+  onToggle: (id: string) => void;
+}) {
+  const groups = useMemo(() => {
+    const m = new Map<string, Discipline[]>();
+    for (const d of library?.disciplines ?? []) {
+      const g = m.get(d.category) ?? [];
+      g.push(d);
+      m.set(d.category, g);
+    }
+    return [...m.entries()];
+  }, [library]);
+
+  const toggle = useCallback(
+    (id: string) => onToggle(id),
+    [onToggle],
+  );
+
+  if (!library) return <div className="font-mono text-[12px] text-faint">刊会库加载中…</div>;
+
+  return (
+    <div className="space-y-3">
+      {groups.map(([cat, items]) => (
+        <div key={cat}>
+          <div className="mb-1.5 font-mono text-[10px] tracking-[0.2em] text-faint">{cat}</div>
+          <div className="flex flex-wrap gap-2">
+            {items.map((d) => {
+              const on = value.includes(d.id);
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => toggle(d.id)}
+                  className={`border px-2.5 py-1 text-[12px] transition-colors ${
+                    on
+                      ? 'border-[rgba(83,230,166,.55)] bg-[rgba(83,230,166,.12)] text-ink'
+                      : 'border-hair bg-[rgba(150,160,190,.04)] text-mute hover:border-hair-2 hover:text-ink'
+                  }`}
+                >
+                  {d.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      {value.length > 0 && (
+        <div className="font-mono text-[11px] text-faint">已选 {value.length} 个学科</div>
+      )}
+    </div>
+  );
+}
+
+/** 刊会选择：展示所选学科的刊/会（默认全选），支持手动取消与自定义添加 */
 function VenuePicker({
+  library,
+  disciplineIds,
   value,
   onChange,
   customVenue,
   onCustomVenue,
 }: {
+  library: VenueLibrary | null;
+  disciplineIds: string[];
   value: string[];
   onChange: (v: string[]) => void;
   customVenue: string;
   onCustomVenue: (v: string) => void;
 }) {
-  const [lists, setLists] = useState<VenueLists | null>(null);
-
-  useEffect(() => {
-    api
-      .get<VenueLists>('/venues')
-      .then(setLists)
-      .catch(() => {});
-  }, []);
-
   const toggle = (v: string) => {
     onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
   };
@@ -149,40 +231,77 @@ function VenuePicker({
     onCustomVenue('');
   };
 
-  const renderGroup = (title: string, items: string[]) => (
-    <div className="mb-3">
-      <div className="mb-1.5 font-mono text-[10px] tracking-[0.2em] text-faint">{title}</div>
-      <div className="flex flex-wrap gap-2">
-        {items.map((v) => {
-          const on = value.includes(v);
-          return (
-            <button
-              key={v}
-              type="button"
-              onClick={() => toggle(v)}
-              className={`border px-2.5 py-1 text-[12px] transition-colors ${
-                on
-                  ? 'border-[rgba(83,230,166,.55)] bg-[rgba(83,230,166,.12)] text-ink'
-                  : 'border-hair bg-[rgba(150,160,190,.04)] text-mute hover:border-hair-2 hover:text-ink'
-              }`}
-            >
-              {v}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+  const libNames = useMemo(() => libraryVenueNames(library), [library]);
+  const groups = useMemo(() => {
+    const map = new Map((library?.disciplines ?? []).map((d) => [d.id, d]));
+    return disciplineIds
+      .map((id) => map.get(id))
+      .filter((d): d is Discipline => !!d);
+  }, [library, disciplineIds]);
 
-  // 预设中没有、但用户已选的自定义项单独展示
-  const preset = [...(lists?.conferences ?? []), ...(lists?.journals ?? [])];
-  const customs = value.filter((v) => !preset.includes(v));
+  // 预设中没有、但已选的自定义项单独展示
+  const customs = value.filter((v) => !libNames.has(v));
+
+  const renderGroup = (title: string, items: { name: string; type: string }[]) => {
+    const allOn = items.length > 0 && items.every((v) => value.includes(v.name));
+    return (
+      <div className="mb-3">
+        <div className="mb-1.5 flex items-center justify-between">
+          <div className="font-mono text-[10px] tracking-[0.2em] text-faint">{title}</div>
+          {items.length > 1 && (
+            <button
+              type="button"
+              className="font-mono text-[10px] text-mute hover:text-ink"
+              onClick={() => {
+                const names = items.map((v) => v.name);
+                onChange(
+                  allOn
+                    ? value.filter((x) => !names.includes(x))
+                    : [...value, ...names.filter((n) => !value.includes(n))],
+                );
+              }}
+            >
+              {allOn ? '清空' : '全选'}
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {items.map((v) => {
+            const on = value.includes(v.name);
+            return (
+              <button
+                key={v.name}
+                type="button"
+                onClick={() => toggle(v.name)}
+                title={v.type === 'preprint' ? '预印本' : v.type === 'conference' ? '会议' : '期刊'}
+                className={`border px-2.5 py-1 text-[12px] transition-colors ${
+                  on
+                    ? 'border-[rgba(83,230,166,.55)] bg-[rgba(83,230,166,.12)] text-ink'
+                    : 'border-hair bg-[rgba(150,160,190,.04)] text-mute hover:border-hair-2 hover:text-ink'
+                }`}
+              >
+                {v.name}
+                {v.type === 'preprint' && <span className="ml-1 text-[10px] text-faint">预印本</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  if (disciplineIds.length === 0) {
+    return (
+      <div className="font-mono text-[12px] text-faint">
+        请先在上方选择学科，这里会列出对应学科的期刊 / 顶会（默认全选）。
+      </div>
+    );
+  }
 
   return (
     <div>
-      {renderGroup('顶级会议', lists?.conferences ?? [])}
-      {renderGroup('顶级期刊', lists?.journals ?? [])}
-      {customs.length > 0 && renderGroup('自定义', customs)}
+      {groups.map((d) => renderGroup(d.name, d.venues))}
+      {customs.length > 0 && renderGroup('自定义', customs.map((name) => ({ name, type: 'custom' })))}
       <div className="flex gap-2">
         <Input
           value={customVenue}
@@ -200,7 +319,9 @@ function VenuePicker({
         </Button>
       </div>
       {value.length > 0 && (
-        <div className="mt-2 font-mono text-[11px] text-faint">已选 {value.length} 个</div>
+        <div className="mt-2 font-mono text-[11px] text-faint">
+          已选 {value.length} 个刊会（硬过滤：周报只收录所选刊会范围内的论文）
+        </div>
       )}
     </div>
   );
@@ -218,20 +339,50 @@ function SubscriberModal({
   const toast = useToast();
   const [form, setForm] = useState<FormState>(() => toForm(editing ?? undefined));
   const [saving, setSaving] = useState(false);
+  const [library, setLibrary] = useState<VenueLibrary | null>(null);
+
+  useEffect(() => {
+    api
+      .get<VenueLibrary>('/config/venues')
+      .then(setLibrary)
+      .catch(() => {});
+  }, []);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  /** 学科切换：新增学科的刊会自动全选；移除学科的刊会同步移除；手动取消的保持不变 */
+  const toggleDiscipline = (id: string) => {
+    const has = form.disciplines.includes(id);
+    const next = has ? form.disciplines.filter((x) => x !== id) : [...form.disciplines, id];
+    const libNames = libraryVenueNames(library);
+    if (has) {
+      const removed = new Set(
+        (library?.disciplines ?? []).find((d) => d.id === id)?.venues.map((v) => v.name) ?? [],
+      );
+      setForm((f) => ({
+        ...f,
+        disciplines: next,
+        venues: f.venues.filter((v) => !removed.has(v) || !libNames.has(v)),
+      }));
+    } else {
+      const added = unionVenues(library, [id]).filter((v) => !form.venues.includes(v));
+      setForm((f) => ({ ...f, disciplines: next, venues: [...f.venues, ...added] }));
+    }
+  };
+
   const submit = async () => {
-    if (!form.email.trim() || !form.field.trim()) {
-      toast('error', '请填写接收邮箱和研究领域');
+    if (!form.email.trim() || form.disciplines.length === 0) {
+      toast('error', '请填写接收邮箱并至少选择一个学科');
       return;
     }
     setSaving(true);
     const payload = {
       name: form.name.trim(),
       email: form.email.trim(),
-      field: form.field.trim(),
+      field: '',
+      disciplines: form.disciplines,
+      research_direction: form.research_direction.trim(),
       research_problem: form.research_problem.trim(),
       methods: form.methods.trim(),
       keywords: form.keywords,
@@ -281,17 +432,22 @@ function SubscriberModal({
 
       {/* 研究画像 */}
       <div className="mb-3 mt-6 font-mono text-[10px] tracking-[0.24em] text-faint">研究画像</div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label="研究领域" required>
-          <Input
-            value={form.field}
-            onChange={(e) => set('field', e.target.value)}
-            placeholder="如：大语言模型、计算机视觉"
-          />
+      <div className="grid gap-4">
+        <Field label="学科" required hint="多选，下方会自动列出对应学科的期刊 / 顶会">
+          <DisciplinePicker library={library} value={form.disciplines} onToggle={toggleDiscipline} />
         </Field>
-        <Field label="关键词" hint="回车添加，用于辅助搜索">
-          <KeywordTags value={form.keywords} onChange={(v) => set('keywords', v)} />
-        </Field>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="研究方向" hint="一句话，如：大模型推理加速">
+            <Input
+              value={form.research_direction}
+              onChange={(e) => set('research_direction', e.target.value)}
+              placeholder="如：多智能体协作、环境催化材料"
+            />
+          </Field>
+          <Field label="关键词" hint="回车添加，用于辅助搜索">
+            <KeywordTags value={form.keywords} onChange={(v) => set('keywords', v)} />
+          </Field>
+        </div>
         <div className="md:col-span-2">
           <Field label="当前研究问题" hint="用自然语言描述重点关注的科研问题，系统据此理解研究需求">
             <Textarea
@@ -315,8 +471,13 @@ function SubscriberModal({
       {/* 推送偏好 */}
       <div className="mb-3 mt-6 font-mono text-[10px] tracking-[0.24em] text-faint">推送偏好</div>
       <div className="grid gap-4">
-        <Field label="关注的会议 / 期刊" hint="从预设中多选，也可自定义输入">
+        <Field
+          label="关注的会议 / 期刊"
+          hint="根据所选学科自动列出，默认全选；周报只收录所选刊会范围内的论文"
+        >
           <VenuePicker
+            library={library}
+            disciplineIds={form.disciplines}
             value={form.venues}
             onChange={(v) => set('venues', v)}
             customVenue={form.customVenue}
@@ -357,6 +518,23 @@ export default function Subscribers() {
   const [deleting, setDeleting] = useState<Subscriber | null>(null);
   const [deletingLoading, setDeletingLoading] = useState(false);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [library, setLibrary] = useState<VenueLibrary | null>(null);
+
+  useEffect(() => {
+    api
+      .get<VenueLibrary>('/config/venues')
+      .then(setLibrary)
+      .catch(() => {});
+  }, []);
+
+  const disciplineNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const d of library?.disciplines ?? []) m.set(d.id, d.name);
+    return m;
+  }, [library]);
+
+  const disciplineNames = (s: Subscriber) =>
+    (s.disciplines ?? []).map((id) => disciplineNameMap.get(id) ?? id).join('、') || s.field || '—';
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -425,13 +603,13 @@ export default function Subscribers() {
           <Spinner /> 加载中…
         </div>
       ) : (
-        <TableShell head={['用户', '接收邮箱', '研究领域', '每周推荐', '推送状态', '操作']}>
+        <TableShell head={['用户', '接收邮箱', '学科', '每周推荐', '推送状态', '操作']}>
           {list.map((s) => (
             <tr key={s.id} className="border-b border-[rgba(150,160,190,.08)] last:border-0 hover:bg-[rgba(150,160,190,.03)]">
               <td className="px-4 py-3 text-ink">{s.name}</td>
               <td className="px-4 py-3 font-mono text-[12px] text-mute">{s.email}</td>
-              <td className="max-w-[220px] truncate px-4 py-3 text-mute" title={s.field}>
-                {s.field}
+              <td className="max-w-[220px] truncate px-4 py-3 text-mute" title={disciplineNames(s)}>
+                {disciplineNames(s)}
               </td>
               <td className="px-4 py-3 font-mono text-[12px] text-mute">{s.papers_per_week} 篇</td>
               <td className="px-4 py-3">

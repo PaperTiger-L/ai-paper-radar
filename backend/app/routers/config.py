@@ -14,8 +14,17 @@ from ..config import settings
 from ..deps import get_current_user, get_db
 from ..services import emailer, llm as llm_service
 from ..services import scheduler as scheduler_service
+from ..services import venues as venues_service
 
 router = APIRouter(prefix="/api/config", tags=["config"])
+
+
+@router.get("/venues", response_model=dict)
+def get_venue_library(
+    _user: str = Depends(get_current_user),
+):
+    """返回学科 -> 期刊/顶会预设库（供订阅用户表单的学科多选与刊会联动使用）。"""
+    return venues_service.load_library()
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,1057 @@
+{
+  "_comment": "学科 -> 期刊/顶会 预设库（全门类版草案，待 Tiger 确认）。category=门类，type: conference=顶会, journal=期刊",
+  "disciplines": [
+    {
+      "category": "综合",
+      "id": "general",
+      "name": "综合性顶刊",
+      "venues": [
+        {
+          "name": "Nature",
+          "type": "journal"
+        },
+        {
+          "name": "Science",
+          "type": "journal"
+        },
+        {
+          "name": "PNAS",
+          "type": "journal"
+        },
+        {
+          "name": "Nature Communications",
+          "type": "journal"
+        },
+        {
+          "name": "Science Advances",
+          "type": "journal"
+        },
+        {
+          "name": "National Science Review",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "理学",
+      "id": "math",
+      "name": "数学",
+      "venues": [
+        {
+          "name": "Annals of Mathematics",
+          "type": "journal"
+        },
+        {
+          "name": "Inventiones Mathematicae",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of the American Mathematical Society",
+          "type": "journal"
+        },
+        {
+          "name": "Acta Mathematica",
+          "type": "journal"
+        },
+        {
+          "name": "Communications on Pure and Applied Mathematics",
+          "type": "journal"
+        },
+        {
+          "name": "SIAM Review",
+          "type": "journal"
+        },
+        {
+          "name": "Advances in Mathematics",
+          "type": "journal"
+        },
+        {
+          "name": "Duke Mathematical Journal",
+          "type": "journal"
+        },
+        {
+          "name": "arXiv",
+          "type": "preprint"
+        }
+      ],
+      "arxiv_categories": [
+        "math"
+      ]
+    },
+    {
+      "category": "理学",
+      "id": "physics",
+      "name": "物理学",
+      "venues": [
+        {
+          "name": "Physical Review Letters",
+          "type": "journal"
+        },
+        {
+          "name": "Physical Review X",
+          "type": "journal"
+        },
+        {
+          "name": "PRX Quantum",
+          "type": "journal"
+        },
+        {
+          "name": "Reviews of Modern Physics",
+          "type": "journal"
+        },
+        {
+          "name": "Nature Physics",
+          "type": "journal"
+        },
+        {
+          "name": "Physical Review B",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of High Energy Physics",
+          "type": "journal"
+        },
+        {
+          "name": "Applied Physics Letters",
+          "type": "journal"
+        },
+        {
+          "name": "arXiv",
+          "type": "preprint"
+        }
+      ],
+      "arxiv_categories": [
+        "physics",
+        "astro-ph",
+        "hep",
+        "quant-ph",
+        "gr-qc",
+        "nucl",
+        "cond-mat",
+        "nlin"
+      ]
+    },
+    {
+      "category": "理学",
+      "id": "chem_mat",
+      "name": "化学 / 材料科学",
+      "venues": [
+        {
+          "name": "JACS",
+          "type": "journal"
+        },
+        {
+          "name": "Angewandte Chemie",
+          "type": "journal"
+        },
+        {
+          "name": "Nature Chemistry",
+          "type": "journal"
+        },
+        {
+          "name": "Nature Materials",
+          "type": "journal"
+        },
+        {
+          "name": "Advanced Materials",
+          "type": "journal"
+        },
+        {
+          "name": "Nano Letters",
+          "type": "journal"
+        },
+        {
+          "name": "ACS Nano",
+          "type": "journal"
+        },
+        {
+          "name": "Chemical Reviews",
+          "type": "journal"
+        },
+        {
+          "name": "arXiv",
+          "type": "preprint"
+        }
+      ],
+      "arxiv_categories": [
+        "cond-mat",
+        "physics.chem-ph"
+      ]
+    },
+    {
+      "category": "理学",
+      "id": "astro",
+      "name": "天文学",
+      "venues": [
+        {
+          "name": "The Astrophysical Journal",
+          "type": "journal"
+        },
+        {
+          "name": "Monthly Notices of the Royal Astronomical Society",
+          "type": "journal"
+        },
+        {
+          "name": "Astronomy & Astrophysics",
+          "type": "journal"
+        },
+        {
+          "name": "Nature Astronomy",
+          "type": "journal"
+        },
+        {
+          "name": "The Astronomical Journal",
+          "type": "journal"
+        },
+        {
+          "name": "Annual Review of Astronomy and Astrophysics",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "理学",
+      "id": "geo",
+      "name": "地球科学",
+      "venues": [
+        {
+          "name": "Nature Geoscience",
+          "type": "journal"
+        },
+        {
+          "name": "Geophysical Research Letters",
+          "type": "journal"
+        },
+        {
+          "name": "Earth and Planetary Science Letters",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of Geophysical Research",
+          "type": "journal"
+        },
+        {
+          "name": "Geology",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "理学",
+      "id": "stats",
+      "name": "统计学",
+      "venues": [
+        {
+          "name": "Annals of Statistics",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of the American Statistical Association",
+          "type": "journal"
+        },
+        {
+          "name": "JRSS Series B",
+          "type": "journal"
+        },
+        {
+          "name": "Biometrika",
+          "type": "journal"
+        },
+        {
+          "name": "Annals of Applied Statistics",
+          "type": "journal"
+        },
+        {
+          "name": "arXiv",
+          "type": "preprint"
+        }
+      ],
+      "arxiv_categories": [
+        "stat"
+      ]
+    },
+    {
+      "category": "理学",
+      "id": "bio",
+      "name": "生物学 / 生命科学",
+      "venues": [
+        {
+          "name": "Cell",
+          "type": "journal"
+        },
+        {
+          "name": "Nature",
+          "type": "journal"
+        },
+        {
+          "name": "Science",
+          "type": "journal"
+        },
+        {
+          "name": "Molecular Cell",
+          "type": "journal"
+        },
+        {
+          "name": "Nature Genetics",
+          "type": "journal"
+        },
+        {
+          "name": "Nature Methods",
+          "type": "journal"
+        },
+        {
+          "name": "Genome Biology",
+          "type": "journal"
+        },
+        {
+          "name": "Bioinformatics",
+          "type": "journal"
+        },
+        {
+          "name": "eLife",
+          "type": "journal"
+        },
+        {
+          "name": "PNAS",
+          "type": "journal"
+        },
+        {
+          "name": "arXiv",
+          "type": "preprint"
+        }
+      ],
+      "arxiv_categories": [
+        "q-bio"
+      ]
+    },
+    {
+      "category": "工学",
+      "id": "cs_ai",
+      "name": "人工智能 / 计算机科学",
+      "venues": [
+        {
+          "name": "NeurIPS",
+          "type": "conference",
+          "aliases": [
+            "Advances in Neural Information Processing Systems",
+            "NIPS"
+          ]
+        },
+        {
+          "name": "ICML",
+          "type": "conference",
+          "aliases": [
+            "International Conference on Machine Learning"
+          ]
+        },
+        {
+          "name": "ICLR",
+          "type": "conference",
+          "aliases": [
+            "International Conference on Learning Representations"
+          ]
+        },
+        {
+          "name": "AAAI",
+          "type": "conference",
+          "aliases": [
+            "AAAI Conference on Artificial Intelligence"
+          ]
+        },
+        {
+          "name": "CVPR",
+          "type": "conference",
+          "aliases": [
+            "Conference on Computer Vision and Pattern Recognition",
+            "IEEE/CVF Conference on Computer Vision and Pattern Recognition"
+          ]
+        },
+        {
+          "name": "ICCV",
+          "type": "conference",
+          "aliases": [
+            "International Conference on Computer Vision",
+            "IEEE/CVF International Conference on Computer Vision"
+          ]
+        },
+        {
+          "name": "ACL",
+          "type": "conference",
+          "aliases": [
+            "Annual Meeting of the Association for Computational Linguistics"
+          ]
+        },
+        {
+          "name": "EMNLP",
+          "type": "conference",
+          "aliases": [
+            "Conference on Empirical Methods in Natural Language Processing"
+          ]
+        },
+        {
+          "name": "KDD",
+          "type": "conference",
+          "aliases": [
+            "ACM SIGKDD",
+            "Knowledge Discovery and Data Mining"
+          ]
+        },
+        {
+          "name": "JMLR",
+          "type": "journal"
+        },
+        {
+          "name": "TPAMI",
+          "type": "journal"
+        },
+        {
+          "name": "TNNLS",
+          "type": "journal"
+        },
+        {
+          "name": "arXiv",
+          "type": "preprint"
+        }
+      ],
+      "arxiv_categories": [
+        "cs",
+        "eess"
+      ]
+    },
+    {
+      "category": "工学",
+      "id": "ee",
+      "name": "电子工程 / 通信",
+      "venues": [
+        {
+          "name": "ISSCC",
+          "type": "conference",
+          "aliases": [
+            "International Solid-State Circuits Conference"
+          ]
+        },
+        {
+          "name": "ICC",
+          "type": "conference",
+          "aliases": [
+            "IEEE International Conference on Communications"
+          ]
+        },
+        {
+          "name": "GLOBECOM",
+          "type": "conference",
+          "aliases": [
+            "IEEE Global Communications Conference"
+          ]
+        },
+        {
+          "name": "ICASSP",
+          "type": "conference",
+          "aliases": [
+            "International Conference on Acoustics, Speech and Signal Processing"
+          ]
+        },
+        {
+          "name": "IEEE Transactions on Communications",
+          "type": "journal"
+        },
+        {
+          "name": "IEEE Transactions on Signal Processing",
+          "type": "journal"
+        },
+        {
+          "name": "IEEE Transactions on Information Theory",
+          "type": "journal"
+        },
+        {
+          "name": "IEEE Journal of Solid-State Circuits",
+          "type": "journal"
+        },
+        {
+          "name": "Nature Electronics",
+          "type": "journal"
+        },
+        {
+          "name": "arXiv",
+          "type": "preprint"
+        }
+      ],
+      "arxiv_categories": [
+        "eess"
+      ]
+    },
+    {
+      "category": "工学",
+      "id": "env",
+      "name": "环境科学与工程",
+      "venues": [
+        {
+          "name": "Environmental Science & Technology",
+          "type": "journal"
+        },
+        {
+          "name": "Water Research",
+          "type": "journal"
+        },
+        {
+          "name": "Applied Catalysis B: Environment and Energy",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of Hazardous Materials",
+          "type": "journal"
+        },
+        {
+          "name": "Environmental Pollution",
+          "type": "journal"
+        },
+        {
+          "name": "Science of the Total Environment",
+          "type": "journal"
+        },
+        {
+          "name": "Chemosphere",
+          "type": "journal"
+        },
+        {
+          "name": "Environment International",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "工学",
+      "id": "civil",
+      "name": "土木工程",
+      "venues": [
+        {
+          "name": "Cement and Concrete Research",
+          "type": "journal"
+        },
+        {
+          "name": "Structural Safety",
+          "type": "journal"
+        },
+        {
+          "name": "Engineering Structures",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of Structural Engineering",
+          "type": "journal"
+        },
+        {
+          "name": "Automation in Construction",
+          "type": "journal"
+        },
+        {
+          "name": "Tunnelling and Underground Space Technology",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "工学",
+      "id": "mech",
+      "name": "机械工程",
+      "venues": [
+        {
+          "name": "International Journal of Machine Tools and Manufacture",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of Mechanical Design",
+          "type": "journal"
+        },
+        {
+          "name": "Mechanical Systems and Signal Processing",
+          "type": "journal"
+        },
+        {
+          "name": "Robotics and Computer-Integrated Manufacturing",
+          "type": "journal"
+        },
+        {
+          "name": "CIRP Annals",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "工学",
+      "id": "chemen",
+      "name": "化学工程",
+      "venues": [
+        {
+          "name": "AIChE Journal",
+          "type": "journal"
+        },
+        {
+          "name": "Chemical Engineering Science",
+          "type": "journal"
+        },
+        {
+          "name": "Chemical Engineering Journal",
+          "type": "journal"
+        },
+        {
+          "name": "Industrial & Engineering Chemistry Research",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "工学",
+      "id": "bme",
+      "name": "生物医学工程",
+      "venues": [
+        {
+          "name": "IEEE Transactions on Medical Imaging",
+          "type": "journal"
+        },
+        {
+          "name": "Medical Image Analysis",
+          "type": "journal"
+        },
+        {
+          "name": "IEEE Transactions on Biomedical Engineering",
+          "type": "journal"
+        },
+        {
+          "name": "Nature Biomedical Engineering",
+          "type": "journal"
+        },
+        {
+          "name": "Biomaterials",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "医学",
+      "id": "med",
+      "name": "医学",
+      "venues": [
+        {
+          "name": "MICCAI",
+          "type": "conference",
+          "aliases": [
+            "Medical Image Computing and Computer Assisted Intervention"
+          ]
+        },
+        {
+          "name": "ISBI",
+          "type": "conference",
+          "aliases": [
+            "IEEE International Symposium on Biomedical Imaging"
+          ]
+        },
+        {
+          "name": "New England Journal of Medicine",
+          "type": "journal"
+        },
+        {
+          "name": "The Lancet",
+          "type": "journal"
+        },
+        {
+          "name": "JAMA",
+          "type": "journal"
+        },
+        {
+          "name": "Nature Medicine",
+          "type": "journal"
+        },
+        {
+          "name": "BMJ",
+          "type": "journal"
+        },
+        {
+          "name": "Annals of Internal Medicine",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "医学",
+      "id": "pubhealth",
+      "name": "公共卫生",
+      "venues": [
+        {
+          "name": "The Lancet Public Health",
+          "type": "journal"
+        },
+        {
+          "name": "American Journal of Public Health",
+          "type": "journal"
+        },
+        {
+          "name": "International Journal of Epidemiology",
+          "type": "journal"
+        },
+        {
+          "name": "Epidemiology",
+          "type": "journal"
+        },
+        {
+          "name": "Bulletin of the World Health Organization",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "医学",
+      "id": "pharm",
+      "name": "药学",
+      "venues": [
+        {
+          "name": "Nature Reviews Drug Discovery",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of Medicinal Chemistry",
+          "type": "journal"
+        },
+        {
+          "name": "Advanced Drug Delivery Reviews",
+          "type": "journal"
+        },
+        {
+          "name": "British Journal of Pharmacology",
+          "type": "journal"
+        },
+        {
+          "name": "Drug Discovery Today",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "农学",
+      "id": "agro",
+      "name": "作物学 / 植物科学",
+      "venues": [
+        {
+          "name": "Nature Food",
+          "type": "journal"
+        },
+        {
+          "name": "The Plant Cell",
+          "type": "journal"
+        },
+        {
+          "name": "Molecular Plant",
+          "type": "journal"
+        },
+        {
+          "name": "Theoretical and Applied Genetics",
+          "type": "journal"
+        },
+        {
+          "name": "Field Crops Research",
+          "type": "journal"
+        },
+        {
+          "name": "Agriculture, Ecosystems & Environment",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "农学",
+      "id": "ecology",
+      "name": "生态学 / 林学",
+      "venues": [
+        {
+          "name": "Ecology Letters",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of Ecology",
+          "type": "journal"
+        },
+        {
+          "name": "Global Change Biology",
+          "type": "journal"
+        },
+        {
+          "name": "Forest Ecology and Management",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "经济学",
+      "id": "econ",
+      "name": "经济学",
+      "venues": [
+        {
+          "name": "American Economic Review",
+          "type": "journal"
+        },
+        {
+          "name": "Quarterly Journal of Economics",
+          "type": "journal"
+        },
+        {
+          "name": "Econometrica",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of Political Economy",
+          "type": "journal"
+        },
+        {
+          "name": "Review of Economic Studies",
+          "type": "journal"
+        },
+        {
+          "name": "arXiv",
+          "type": "preprint"
+        }
+      ],
+      "arxiv_categories": [
+        "econ",
+        "q-fin"
+      ]
+    },
+    {
+      "category": "管理学",
+      "id": "mgmt",
+      "name": "管理学",
+      "venues": [
+        {
+          "name": "Management Science",
+          "type": "journal"
+        },
+        {
+          "name": "Academy of Management Journal",
+          "type": "journal"
+        },
+        {
+          "name": "Academy of Management Review",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of Finance",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of Financial Economics",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "法学",
+      "id": "law",
+      "name": "法学",
+      "venues": [
+        {
+          "name": "Harvard Law Review",
+          "type": "journal"
+        },
+        {
+          "name": "Yale Law Journal",
+          "type": "journal"
+        },
+        {
+          "name": "Stanford Law Review",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of Legal Studies",
+          "type": "journal"
+        },
+        {
+          "name": "American Journal of International Law",
+          "type": "journal"
+        },
+        {
+          "name": "《中国法学》",
+          "type": "journal"
+        },
+        {
+          "name": "《法学研究》",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "教育学",
+      "id": "edu",
+      "name": "教育学",
+      "venues": [
+        {
+          "name": "Review of Educational Research",
+          "type": "journal"
+        },
+        {
+          "name": "Educational Researcher",
+          "type": "journal"
+        },
+        {
+          "name": "American Educational Research Journal",
+          "type": "journal"
+        },
+        {
+          "name": "Learning and Instruction",
+          "type": "journal"
+        },
+        {
+          "name": "Computers & Education",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "文学",
+      "id": "chinlit",
+      "name": "中国语言文学",
+      "venues": [
+        {
+          "name": "《文学评论》",
+          "type": "journal"
+        },
+        {
+          "name": "《文艺研究》",
+          "type": "journal"
+        },
+        {
+          "name": "《中国现代文学研究丛刊》",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "文学",
+      "id": "ling",
+      "name": "语言学",
+      "venues": [
+        {
+          "name": "Language",
+          "type": "journal"
+        },
+        {
+          "name": "Linguistic Inquiry",
+          "type": "journal"
+        },
+        {
+          "name": "Natural Language & Linguistic Theory",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "文学",
+      "id": "comm",
+      "name": "新闻传播学",
+      "venues": [
+        {
+          "name": "Journal of Communication",
+          "type": "journal"
+        },
+        {
+          "name": "New Media & Society",
+          "type": "journal"
+        },
+        {
+          "name": "《新闻与传播研究》",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "历史学",
+      "id": "hist",
+      "name": "历史学",
+      "venues": [
+        {
+          "name": "American Historical Review",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of Modern History",
+          "type": "journal"
+        },
+        {
+          "name": "Past & Present",
+          "type": "journal"
+        },
+        {
+          "name": "《历史研究》",
+          "type": "journal"
+        },
+        {
+          "name": "《中国史研究》",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "哲学",
+      "id": "phil",
+      "name": "哲学",
+      "venues": [
+        {
+          "name": "The Philosophical Review",
+          "type": "journal"
+        },
+        {
+          "name": "Journal of Philosophy",
+          "type": "journal"
+        },
+        {
+          "name": "Mind",
+          "type": "journal"
+        },
+        {
+          "name": "Noûs",
+          "type": "journal"
+        },
+        {
+          "name": "《哲学研究》",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "艺术学",
+      "id": "art",
+      "name": "艺术与设计",
+      "venues": [
+        {
+          "name": "Design Studies",
+          "type": "journal"
+        },
+        {
+          "name": "The Art Bulletin",
+          "type": "journal"
+        },
+        {
+          "name": "October",
+          "type": "journal"
+        },
+        {
+          "name": "Design Issues",
+          "type": "journal"
+        }
+      ]
+    },
+    {
+      "category": "军事学",
+      "id": "mil",
+      "name": "军事学",
+      "venues": [
+        {
+          "name": "《中国军事科学》",
+          "type": "journal"
+        },
+        {
+          "name": "《军事历史》",
+          "type": "journal"
+        }
+      ]
+    }
+  ]
+}

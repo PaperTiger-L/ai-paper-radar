@@ -5,6 +5,8 @@ export interface Subscriber {
   name: string;
   email: string;
   field: string;
+  disciplines: string[];
+  research_direction: string;
   research_problem: string;
   methods: string;
   keywords: string[];
@@ -117,9 +119,22 @@ export interface DigestPreview {
   run_id: number;
 }
 
-export interface VenueLists {
-  conferences: string[];
-  journals: string[];
+export interface VenueItem {
+  name: string;
+  type: 'conference' | 'journal' | 'preprint';
+  aliases?: string[];
+}
+
+export interface Discipline {
+  id: string;
+  category: string;
+  name: string;
+  venues: VenueItem[];
+  arxiv_categories?: string[];
+}
+
+export interface VenueLibrary {
+  disciplines: Discipline[];
 }
 
 export interface PageResult<T> {

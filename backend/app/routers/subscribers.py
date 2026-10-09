@@ -37,6 +37,8 @@ def create_subscriber(
         name=name,
         email=body.email,
         field=body.field,
+        disciplines=list(body.disciplines or []),
+        research_direction=body.research_direction,
         research_problem=body.research_problem,
         methods=body.methods,
         keywords=list(body.keywords or []),
@@ -58,23 +60,27 @@ def update_subscriber(
     db: Session = Depends(get_db),
     _user: str = Depends(get_current_user),
 ):
-    """修改订阅用户（全量字段更新；email 为空则保持原值）。"""
+    """修改订阅用户：只更新请求中实际携带的字段（支持部分更新，如仅切换 enabled）。"""
     sub = db.get(Subscriber, subscriber_id)
     if sub is None:
         raise HTTPException(status_code=404, detail="用户不存在")
-    if body.email and body.email != sub.email:
-        if db.query(Subscriber).filter(Subscriber.email == body.email).first():
+    data = body.model_dump(exclude_unset=True)
+    if data.get("email") and data["email"] != sub.email:
+        if db.query(Subscriber).filter(Subscriber.email == data["email"]).first():
             raise HTTPException(status_code=400, detail="该邮箱已存在")
-        sub.email = body.email
-    if body.name:
-        sub.name = body.name
-    sub.field = body.field
-    sub.research_problem = body.research_problem
-    sub.methods = body.methods
-    sub.keywords = list(body.keywords or [])
-    sub.venues = list(body.venues or [])
-    sub.papers_per_week = body.papers_per_week
-    sub.enabled = body.enabled
+        sub.email = data["email"]
+    if data.get("name"):
+        sub.name = data["name"]
+    for attr in ("field", "research_direction", "research_problem", "methods"):
+        if attr in data:
+            setattr(sub, attr, data[attr] or "")
+    for attr in ("disciplines", "keywords", "venues"):
+        if attr in data:
+            setattr(sub, attr, list(data[attr] or []))
+    if "papers_per_week" in data:
+        sub.papers_per_week = data["papers_per_week"]
+    if "enabled" in data:
+        sub.enabled = data["enabled"]
     sub.updated_at = utils.now()
     db.commit()
     db.refresh(sub)

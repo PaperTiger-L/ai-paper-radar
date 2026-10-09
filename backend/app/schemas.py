@@ -74,7 +74,9 @@ class OkOut(BaseModel):
 class SubscriberBase(BaseModel):
     name: str = ""
     email: str = ""
-    field: str = ""
+    field: str = ""  # 旧字段，保留兼容
+    disciplines: list[str] = []  # 学科 id 数组
+    research_direction: str = ""  # 研究方向
     research_problem: str = ""
     methods: str = ""
     keywords: list[str] = []
@@ -368,9 +370,5 @@ class LogsDeletedOut(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# 会议 / 期刊
+# 刊会库：由 GET /api/config/venues 直接返回 venues.json 内容（dict），无需 schema
 # ---------------------------------------------------------------------------
-
-class VenuesOut(BaseModel):
-    conferences: list[str]
-    journals: list[str]

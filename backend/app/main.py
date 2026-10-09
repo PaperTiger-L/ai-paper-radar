@@ -31,7 +31,6 @@ from .routers import (
     pipeline,
     runs,
     subscribers,
-    venues,
 )
 from .services import scheduler as scheduler_service
 
@@ -192,4 +191,3 @@ app.include_router(runs.router)
 app.include_router(papers.router)
 app.include_router(digest.router)
 app.include_router(logs.router)
-app.include_router(venues.router)
