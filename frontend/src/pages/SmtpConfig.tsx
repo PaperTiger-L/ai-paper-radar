@@ -121,7 +121,7 @@ export default function SmtpConfigPage() {
           <Field label="端口" required>
             <Input type="number" value={port} onChange={(e) => setPort(Number(e.target.value))} placeholder="465" />
           </Field>
-          <Field label="用户名">
+          <Field label="用户名" hint="不填则默认使用发件人邮箱登录">
             <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="通常为发件人邮箱" />
           </Field>
           <Field

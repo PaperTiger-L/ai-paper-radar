@@ -84,8 +84,10 @@ def send_email(db, to_email: str, subject: str, html: str) -> None:
             if cfg["use_tls"] and not cfg["use_ssl"]:
                 server.starttls()
                 server.ehlo()
-            if cfg["username"]:
-                server.login(cfg["username"], cfg["password"])
+            # 用户名为空时默认用发件人邮箱登录（QQ/163/Gmail 均要求邮箱地址登录）
+            login_user = cfg["username"] or cfg["from_email"]
+            if login_user:
+                server.login(login_user, cfg["password"])
             server.send_message(msg)
     except Exception as e:
         utils.log_event(db, "email", "ERROR",
