@@ -5641,7 +5641,7 @@ answer`,rawText:i,templateArgs:r})}],false,r).startsWith(a+i))return;let l="unfi
     var password = (pwEl && pwEl.value) || "";
     var remember = !!(rememberEl && rememberEl.checked);
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setMsg("请输入有效的邮箱地址。"); return; }
+    if (!email) { setMsg("请输入用户名。"); return; }
     if (!password) { setMsg("请输入密码。"); return; }
 
     if (submitBtn) submitBtn.disabled = true;
