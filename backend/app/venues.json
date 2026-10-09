@@ -432,6 +432,24 @@
         {
           "name": "arXiv",
           "type": "preprint"
+        },
+        {
+          "name": "MobiSys",
+          "type": "conference",
+          "aliases": [
+            "International Conference on Mobile Systems, Applications, and Services"
+          ]
+        },
+        {
+          "name": "SenSys",
+          "type": "conference",
+          "aliases": [
+            "ACM Conference on Embedded Networked Sensor Systems"
+          ]
+        },
+        {
+          "name": "IEEE Transactions on Mobile Computing",
+          "type": "journal"
         }
       ],
       "arxiv_categories": [
