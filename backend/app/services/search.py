@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import datetime as dt
 import re
+import threading
+import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 
@@ -135,6 +137,21 @@ def fetch_openalex(query: str, since: dt.date, until: dt.date, db=None) -> list[
 # ---------------------------------------------------------------------------
 
 _ARXIV_NS = {"a": "http://www.w3.org/2005/Atom"}
+_ARXIV_MIN_INTERVAL = 3.0  # arXiv 官方要求请求间隔至少 3 秒
+_ARXIV_RETRIES = 3
+_arxiv_lock = threading.Lock()
+_last_arxiv_ts = 0.0
+
+
+def _arxiv_throttle() -> None:
+    """保证 arXiv 请求间隔 ≥3 秒（官方限流要求），否则会被 429。"""
+    global _last_arxiv_ts
+    with _arxiv_lock:
+        now = time.monotonic()
+        wait = _ARXIV_MIN_INTERVAL - (now - _last_arxiv_ts)
+        if wait > 0:
+            time.sleep(wait)
+        _last_arxiv_ts = time.monotonic()
 
 
 def _parse_arxiv_date(value: str | None) -> dt.date | None:
@@ -146,8 +163,8 @@ def _parse_arxiv_date(value: str | None) -> dt.date | None:
         return None
 
 
-def fetch_arxiv(query: str, since: dt.date, db=None) -> list[PaperCandidate]:
-    """用单个查询词检索 arXiv（按提交时间倒序），只保留 since 之后的结果。"""
+def _fetch_arxiv_once(query: str, since: dt.date) -> list[PaperCandidate]:
+    """单次 arXiv 请求 + 解析（内部用，失败抛异常由 fetch_arxiv 重试）。"""
     params = {
         "search_query": f"all:{query}",
         "start": 0,
@@ -155,15 +172,12 @@ def fetch_arxiv(query: str, since: dt.date, db=None) -> list[PaperCandidate]:
         "sortBy": "submittedDate",
         "sortOrder": "descending",
     }
-    try:
-        with httpx.Client(timeout=TIMEOUT) as client:
-            resp = client.get(ARXIV_URL, params=params)
-        resp.raise_for_status()
-        root = ET.fromstring(resp.text)
-    except Exception as e:
-        if db is not None:
-            utils.log_event(db, "search", "ERROR", f"arXiv 检索失败 query={query} 错误={type(e).__name__}: {e}")
-        return []
+    # arXiv 推送大 XML 较慢：读超时放宽到 90 秒
+    timeout = httpx.Timeout(connect=15.0, read=90.0, write=15.0, pool=15.0)
+    with httpx.Client(timeout=timeout) as client:
+        resp = client.get(ARXIV_URL, params=params)
+    resp.raise_for_status()
+    root = ET.fromstring(resp.text)
 
     candidates: list[PaperCandidate] = []
     for entry in root.findall("a:entry", _ARXIV_NS):
@@ -198,9 +212,57 @@ def fetch_arxiv(query: str, since: dt.date, db=None) -> list[PaperCandidate]:
             )
         except Exception:
             continue
-    if db is not None:
-        utils.log_event(db, "search", "INFO", f"arXiv 检索完成 query={query} 结果 {len(candidates)} 篇（已过滤 7 天内）")
     return candidates
+
+
+def fetch_arxiv(query: str, since: dt.date, db=None) -> list[PaperCandidate]:
+    """用单个查询词检索 arXiv（按提交时间倒序），只保留 since 之后的结果。
+
+    arXiv 限流严格（常 429）且响应慢：请求间隔 ≥3 秒，
+    429/5xx/超时/网络错误做退避重试（最多 3 次），仍失败返回空列表。
+    """
+    _arxiv_throttle()
+    last_err: Exception | None = None
+    for attempt in range(1, _ARXIV_RETRIES + 1):
+        try:
+            candidates = _fetch_arxiv_once(query, since)
+            if db is not None:
+                utils.log_event(db, "search", "INFO",
+                                f"arXiv 检索完成 query={query} 结果 {len(candidates)} 篇（已过滤 7 天内）")
+            return candidates
+        except httpx.HTTPStatusError as e:
+            status = e.response.status_code
+            last_err = e
+            if status == 429 or 500 <= status < 600:
+                retry_after = e.response.headers.get("retry-after", "")
+                wait = float(retry_after) if retry_after.strip().isdigit() else 5.0 * attempt
+                if attempt < _ARXIV_RETRIES and db is not None:
+                    utils.log_event(db, "search", "WARNING",
+                                    f"arXiv 被限流/服务端错误（{status}），{wait:.0f}s 后重试 "
+                                    f"query={query}（{attempt}/{_ARXIV_RETRIES}）")
+                if attempt < _ARXIV_RETRIES:
+                    time.sleep(wait)
+                    continue
+            break  # 其他 4xx 不重试
+        except (httpx.TimeoutException, httpx.TransportError) as e:
+            last_err = e
+            wait = 5.0 * attempt
+            if attempt < _ARXIV_RETRIES:
+                if db is not None:
+                    utils.log_event(db, "search", "WARNING",
+                                    f"arXiv 请求超时/网络错误（{type(e).__name__}），{wait:.0f}s 后重试 "
+                                    f"query={query}（{attempt}/{_ARXIV_RETRIES}）")
+                time.sleep(wait)
+                continue
+            break
+        except Exception as e:  # 解析等未知错误不重试
+            last_err = e
+            break
+    if db is not None and last_err is not None:
+        utils.log_event(db, "search", "ERROR",
+                        f"arXiv 检索失败（已重试 {_ARXIV_RETRIES} 次）query={query} "
+                        f"错误={type(last_err).__name__}: {last_err}")
+    return []
 
 
 # ---------------------------------------------------------------------------
