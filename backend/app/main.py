@@ -132,7 +132,15 @@ async def lifespan(app: FastAPI):
     scheduler_service.shutdown()
 
 
-app = FastAPI(title="AI Paper Radar", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="AI Paper Radar",
+    version="1.0.0",
+    lifespan=lifespan,
+    # DOCS_ENABLED=true 时才暴露文档接口；生产环境默认关闭，减少暴露面
+    docs_url="/docs" if settings.docs_enabled else None,
+    redoc_url="/redoc" if settings.docs_enabled else None,
+    openapi_url="/openapi.json" if settings.docs_enabled else None,
+)
 
 
 # ---------------------------------------------------------------------------

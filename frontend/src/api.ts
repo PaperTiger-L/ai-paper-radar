@@ -11,6 +11,18 @@ export function setToken(token: string) {
   localStorage.setItem(TOKEN_KEY, token);
 }
 
+/** 用新 token 替换当前已存的 token，保持原来的存储位置
+ *（localStorage / sessionStorage），用于改密/改用户名后换发 token。 */
+export function refreshToken(token: string) {
+  try {
+    if (sessionStorage.getItem(TOKEN_KEY)) {
+      sessionStorage.setItem(TOKEN_KEY, token);
+      return;
+    }
+  } catch { /* ignore */ }
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
   try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }

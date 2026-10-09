@@ -34,6 +34,12 @@ from . import emailer, llm as llm_service, search as search_service
 _jobs: dict[str, dict] = {}
 _jobs_lock = threading.Lock()
 
+# 任务互斥：单进程部署下，同一时间只允许一个 pipeline 任务执行。
+# 手动"立即执行"撞上定时触发（或连点两次）时，直接复用正在运行的任务，
+# 避免重复生成周报、重复发送邮件。
+_active_lock = threading.Lock()
+_active_job_id: str | None = None
+
 
 def _set_job(job_id: str, status: str, progress: int, message: str = "") -> None:
     with _jobs_lock:
@@ -53,8 +59,19 @@ def get_job(job_id: str) -> dict | None:
 
 
 def start_job(subscriber_ids: list[int] | None = None, send_email: bool = True, force: bool = False) -> str:
-    """创建后台任务并启动线程，返回 job_id。"""
-    job_id = uuid.uuid4().hex
+    """创建后台任务并启动线程，返回 job_id。
+
+    若已有任务正在排队/执行中，直接返回该 job_id（调用方轮询同一个任务），
+    防止并发重复执行导致重复发邮件。
+    """
+    global _active_job_id
+    with _active_lock:
+        if _active_job_id is not None:
+            active = get_job(_active_job_id)
+            if active is not None and active["status"] in ("queued", "running"):
+                return _active_job_id
+        job_id = uuid.uuid4().hex
+        _active_job_id = job_id
     _set_job(job_id, "queued", 0, "任务已排队")
     thread = threading.Thread(
         target=_worker,
@@ -76,6 +93,7 @@ def run_all_now() -> str:
 # ---------------------------------------------------------------------------
 
 def _worker(job_id: str, subscriber_ids: list[int] | None, send_email: bool, force: bool) -> None:
+    global _active_job_id
     db = SessionLocal()
     try:
         _set_job(job_id, "running", 1, "任务开始")
@@ -106,6 +124,10 @@ def _worker(job_id: str, subscriber_ids: list[int] | None, send_email: bool, for
             pass
     finally:
         db.close()
+        # 释放任务互斥：无论成功失败，结束后都允许发起新任务
+        with _active_lock:
+            if _active_job_id == job_id:
+                _active_job_id = None
 
 
 def _has_searchable_profile(profile: dict) -> bool:
@@ -200,7 +222,9 @@ def _process_subscriber(db, job_id: str, sub: Subscriber, send_email: bool, forc
                     scored.extend(llm_service.filter_papers(db, profile, batch[i : i + 20]))
             except llm_service.LlmError as e:
                 utils.log_event(db, "pipeline", "WARNING", f"{tag} LLM 筛选失败，降级为关键词打分：{e}")
-                scored = llm_service.filter_papers(db, profile, batch)  # 未配置 LLM 时内部自动降级
+                # 注意：此处必须用确定性的关键词兜底，不能重调 filter_papers
+                #（LLM 已配置但调用失败时重调必再次抛错，会导致整用户任务失败）
+                scored = llm_service.filter_papers_keyword(profile, batch)
             scored = [s for s in scored if s["id"] in id_map and s["score"] >= 6]
             scored.sort(key=lambda s: s["score"], reverse=True)
         top_n = min(profile["papers_per_week"], len(scored))

@@ -78,6 +78,9 @@ def list_llm_models(
         return {"models": models}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"{type(e).__name__}: {e}")
+
+
+@router.post("/llm/test", response_model=schemas.LlmTestOut)
 def test_llm(
     db: Session = Depends(get_db),
     _user: str = Depends(get_current_user),

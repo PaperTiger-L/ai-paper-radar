@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { api, clearToken, errorMessage, setToken } from './api';
+import { api, clearToken, errorMessage, refreshToken } from './api';
 import {
   Button,
   Field,
@@ -51,7 +51,7 @@ function AccountSettingsModal({ currentUsername, onClose, onUsernameChanged }: {
         new_username: v,
         current_password: usernamePwd,
       });
-      setToken(r.token);
+      refreshToken(r.token);
       onUsernameChanged(r.username);
       toast('success', '用户名修改成功');
       setUsernamePwd('');
@@ -73,10 +73,12 @@ function AccountSettingsModal({ currentUsername, onClose, onUsernameChanged }: {
     }
     setPwdLoading(true);
     try {
-      await api.post('/auth/change-password', {
+      // 改密后旧 token 即刻失效，后端会返回新 token，前端替换本地存储
+      const r = await api.post<{ token: string; username: string; expires_in: number }>('/auth/change-password', {
         old_password: oldPassword,
         new_password: newPassword,
       });
+      if (r.token) refreshToken(r.token);
       toast('success', '密码修改成功');
       setOldPassword('');
       setNewPassword('');

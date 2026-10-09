@@ -227,6 +227,19 @@ def _keyword_overlap_score(profile: dict, title: str, abstract: str) -> tuple[fl
     return score, f"关键词命中 {hits} 次（未配置 LLM，仅供参考）"
 
 
+def filter_papers_keyword(profile: dict, candidates: list[dict]) -> list[dict]:
+    """降级打分：关键词重叠度，不依赖 LLM 与数据库。
+
+    供 pipeline 在 LLM 调用失败时兜底，保证服务商抖动时周报仍能生成。
+    返回 [{id, score, reason_zh}]。"""
+    results = []
+    for c in candidates:
+        score, reason = _keyword_overlap_score(profile, c.get("title", ""),
+                                               c.get("abstract", ""))
+        results.append({"id": c["id"], "score": score, "reason_zh": reason})
+    return results
+
+
 def filter_papers(db, profile: dict, candidates: list[dict]) -> list[dict]:
     """对候选论文逐篇打分（0-10），返回 [{id, score, reason_zh}]。
 
@@ -237,12 +250,7 @@ def filter_papers(db, profile: dict, candidates: list[dict]) -> list[dict]:
         return []
     if not is_configured(db):
         utils.log_event(db, "llm", "WARNING", "LLM 未配置，使用关键词重叠度为候选论文打分")
-        results = []
-        for c in candidates:
-            score, reason = _keyword_overlap_score(profile, c.get("title", ""),
-                                                   c.get("abstract", ""))
-            results.append({"id": c["id"], "score": score, "reason_zh": reason})
-        return results
+        return filter_papers_keyword(profile, candidates)
     lines = []
     for c in candidates:
         abstract = (c.get("abstract") or "")[:800]
