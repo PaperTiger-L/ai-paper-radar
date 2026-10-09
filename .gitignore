@@ -1,0 +1,25 @@
+# 环境变量与密钥
+.env
+
+# 数据持久化目录
+data/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# 前端
+frontend/node_modules/
+frontend/dist/
+# 后端静态目录下的前端构建产物（Docker 构建时自动填入，不提交）
+backend/app/static/admin/
+
+# 系统
+.DS_Store

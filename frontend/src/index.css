@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+/* AI Paper Radar 管理后台 · 深色主题，与登录页气质一致 */
+@theme {
+  --color-bg: #050609;
+  --color-panel: #0a0c12;
+  --color-panel-2: #0e1119;
+  --color-ink: #e8eaf2;
+  --color-mute: #9aa3bd;
+  --color-faint: #5d6580;
+  --color-hair: rgba(150, 160, 190, 0.16);
+  --color-hair-2: rgba(150, 160, 190, 0.3);
+  --color-success: #53e6a6;
+  --color-danger: #ff9d94;
+  --color-warn: #ffd76a;
+  --color-info: #6fb3ff;
+
+  --font-sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    sans-serif;
+  --font-mono: "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas,
+    "PingFang SC", monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(150, 160, 190, 0.16);
+  border-radius: 8px;
+  border: 2px solid #050609;
+}
+
+input,
+textarea,
+select {
+  color-scheme: dark;
+}
+
+/* 细微的入场过渡，登录页风格的克制动效 */
+.fade-in {
+  animation: fadeIn 0.25s ease both;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in {
+    animation: none;
+  }
+}
