@@ -97,14 +97,46 @@ def send_email(db, to_email: str, subject: str, html: str) -> None:
 
 
 def send_test_email(db, to_email: str) -> None:
-    """发送测试邮件（供后台"测试邮件发送"按钮使用）。"""
+    """发送测试邮件（供后台"测试邮件发送"按钮使用）。
+
+    与周报同款青色卡片风格，顺带让用户预览正式周报的排版。
+    """
     subject = "AI Paper Radar 测试邮件"
+    TEAL, TEAL_BG = "#007b78", "#d8f0ed"
+    INK, MUTED = "#142328", "#52676d"
+    CARD, LINE = "#ffffff", "#e2eaec"
+    FONT = ("-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',"
+            "sans-serif")
+    MONO = "'SF Mono',Consolas,'Courier New',monospace"
     html = (
-        '<div style="font-family:-apple-system,\'PingFang SC\',\'Microsoft YaHei\',sans-serif;'
-        'max-width:640px;margin:0 auto;padding:24px;color:#333;">'
-        "<h2>AI Paper Radar 测试邮件</h2>"
-        "<p>如果你收到了这封邮件，说明 SMTP 配置正确，周报可以正常发送。</p>"
-        '<p style="color:#888;font-size:12px;">本邮件由 AI Paper Radar 自动生成。</p></div>'
+        '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        f"<title>{subject}</title></head>"
+        '<body style="margin:0;padding:0;background:#f5f7f8;">'
+        f'<div style="max-width:640px;margin:0 auto;padding:24px 12px;'
+        f'font-family:{FONT};color:{INK};">'
+        f'<table width="100%" cellpadding="0" cellspacing="0" '
+        f'style="background:{TEAL};border-radius:12px;margin-bottom:20px;">'
+        f'<tr><td style="padding:28px 28px 24px 28px;">'
+        f'<div style="font-family:{MONO};font-size:11px;letter-spacing:3px;'
+        f'color:#a8ddd8;margin-bottom:10px;">AI PAPER RADAR · TEST</div>'
+        f'<div style="font-size:26px;font-weight:800;color:#ffffff;'
+        f'line-height:1.3;">测试邮件</div>'
+        f'<div style="font-size:13px;color:{TEAL_BG};margin-top:8px;">'
+        f"SMTP 连接正常</div>"
+        f"</td></tr></table>"
+        f'<table width="100%" cellpadding="0" cellspacing="0" '
+        f'style="background:{CARD};border:1px solid {LINE};border-radius:12px;'
+        f'margin-bottom:20px;"><tr><td style="padding:20px 22px;">'
+        f'<div style="font-size:13px;color:#3d4f55;line-height:1.8;">'
+        f"如果你收到了这封邮件，说明 SMTP 配置正确，论文周报可以正常发送。</div>"
+        f'<div style="font-size:13px;color:{MUTED};line-height:1.8;margin-top:8px;">'
+        f"正式周报将采用相同的卡片样式，包含：本周研究动态、推荐论文"
+        f"（中文标题 / 摘要 / 核心创新点 / 推荐理由）、本周研究启发。</div>"
+        f"</td></tr></table>"
+        f'<div style="text-align:center;font-size:11px;color:#9db3b8;'
+        f'font-family:{MONO};letter-spacing:2px;">AI PAPER RADAR</div>'
+        "</div></body></html>"
     )
     send_email(db, to_email, subject, html)
 
