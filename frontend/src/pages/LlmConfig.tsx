@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api, errorMessage } from '../api';
 import type { LlmConfig } from '../types';
 import {
@@ -33,6 +33,21 @@ export default function LlmConfig() {
   const [baseUrl, setBaseUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
+  const [models, setModels] = useState<string[]>([]);
+  const [modelsOpen, setModelsOpen] = useState(false);
+  const [fetchingModels, setFetchingModels] = useState(false);
+  const comboRef = useRef<HTMLDivElement>(null);
+
+  // 点击下拉框外部关闭
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (comboRef.current && !comboRef.current.contains(e.target as Node)) {
+        setModelsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
 
   useEffect(() => {
     api
@@ -101,6 +116,26 @@ export default function LlmConfig() {
     }
   };
 
+  const fetchModels = async () => {
+    setFetchingModels(true);
+    try {
+      // 用表单当前值拉取（免保存）；留空则后端用已保存的配置
+      const r = await api.post<{ models: string[] }>('/config/llm/models', {
+        base_url: baseUrl.trim(),
+        api_key: apiKey.trim(),
+      });
+      const list = r.models ?? [];
+      setModels(list);
+      setModelsOpen(true);
+      if (list.length === 0) toast('error', '未获取到模型列表');
+      else toast('success', `获取到 ${list.length} 个模型`);
+    } catch (e) {
+      toast('error', errorMessage(e));
+    } finally {
+      setFetchingModels(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-48 items-center justify-center gap-3 text-mute">
@@ -146,12 +181,60 @@ export default function LlmConfig() {
               placeholder={hasKey ? '••••••••（已配置，留空不修改）' : 'sk-…'}
             />
           </Field>
-          <Field label="Model Name" hint="如 gpt-4o-mini、deepseek-chat、qwen-plus">
-            <Input
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              placeholder="deepseek-chat"
-            />
+          <Field
+            label="Model Name"
+            hint="可手动输入，或点右侧按钮拉取模型列表后选择；在输入框中打字可即时过滤"
+          >
+            <div ref={comboRef} className="relative">
+              <div className="flex gap-2">
+                <Input
+                  value={model}
+                  onChange={(e) => {
+                    setModel(e.target.value);
+                    if (models.length) setModelsOpen(true);
+                  }}
+                  onFocus={() => {
+                    if (models.length) setModelsOpen(true);
+                  }}
+                  placeholder="deepseek-chat"
+                />
+                <Button
+                  loading={fetchingModels}
+                  onClick={fetchModels}
+                  className="shrink-0"
+                  title="调用服务商 /models 接口拉取可用模型（用当前表单的 Base URL 和 Key）"
+                >
+                  获取模型列表
+                </Button>
+              </div>
+              {modelsOpen && models.length > 0 && (
+                <div className="absolute inset-x-0 top-full z-50 mt-1 max-h-56 overflow-y-auto border border-hair bg-panel-2 shadow-[0_20px_60px_rgba(0,0,0,.6)]">
+                  {models.filter((m) =>
+                    m.toLowerCase().includes(model.trim().toLowerCase()),
+                  ).length === 0 ? (
+                    <div className="px-3 py-2.5 text-[12px] text-faint">无匹配模型</div>
+                  ) : (
+                    models
+                      .filter((m) => m.toLowerCase().includes(model.trim().toLowerCase()))
+                      .map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => {
+                            setModel(m);
+                            setModelsOpen(false);
+                          }}
+                          className={`block w-full px-3 py-2 text-left font-mono text-[12px] transition-colors hover:bg-[rgba(150,160,190,.08)] ${
+                            m === model.trim() ? 'text-success' : 'text-mute hover:text-ink'
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      ))
+                  )}
+                </div>
+              )}
+            </div>
           </Field>
 
           <div className="flex flex-wrap items-center gap-3 pt-1">

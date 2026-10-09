@@ -117,6 +117,33 @@ def ping(db, timeout: int = 60) -> str:
     return (content or "").strip()
 
 
+def list_models(db, base_url: str | None = None, api_key: str | None = None,
+                timeout: int = 30) -> list[str]:
+    """调用 OpenAI 兼容的 /models 接口，返回模型 id 列表（排序去重）。
+
+    base_url / api_key 缺省时用已保存的配置。失败抛 LlmError（携带真实原因）。
+    """
+    cfg = get_llm_config(db)
+    base = (base_url or cfg["base_url"] or "").rstrip("/")
+    key = api_key if api_key is not None else cfg["api_key"]
+    if not base:
+        raise LlmError("未配置 Base URL")
+    headers = {"Authorization": f"Bearer {key}"} if key else {}
+    try:
+        with httpx.Client(timeout=timeout, headers=headers) as client:
+            resp = client.get(f"{base}/models")
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+    except Exception as e:
+        raise LlmError(f"{type(e).__name__}: {e}") from e
+    ids = [d.get("id") for d in data
+              if isinstance(d, dict) and isinstance(d.get("id"), str) and d.get("id")]
+    if not ids:
+        raise LlmError("接口返回成功，但模型列表为空")
+    utils.log_event(db, "llm", "INFO", f"获取模型列表成功：{len(ids)} 个模型")
+    return sorted(set(ids))
+
+
 def fallback_queries(profile: dict) -> list[str]:
     """降级检索词：用 keywords / field / methods 拼接生成查询（LLM 不可用时使用）。
 

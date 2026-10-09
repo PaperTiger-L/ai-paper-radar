@@ -57,6 +57,12 @@ select {
   color-scheme: dark;
 }
 
+/* 原生 select 下拉列表：Firefox 等浏览器默认白底，强制深色 */
+select option {
+  background-color: #0e1119;
+  color: #e8eaf2;
+}
+
 /* 细微的入场过渡，登录页风格的克制动效 */
 .fade-in {
   animation: fadeIn 0.25s ease both;

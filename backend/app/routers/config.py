@@ -6,7 +6,7 @@ PUT 时 api_key / password 为空字符串表示保持原值。
 """
 import time
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import schemas, utils
@@ -54,7 +54,25 @@ def update_llm_config(
     return {"ok": True}
 
 
-@router.post("/llm/test", response_model=schemas.LlmTestOut)
+@router.post("/llm/models", response_model=schemas.LlmModelsOut)
+def list_llm_models(
+    body: schemas.LlmModelsIn,
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
+):
+    """拉取模型列表（OpenAI 兼容 /models 接口）。
+
+    base_url / api_key 为空时用已保存的配置；也可直接传表单里刚填的值（免保存先拉取）。
+    """
+    try:
+        models = llm_service.list_models(
+            db,
+            base_url=body.base_url or None,
+            api_key=body.api_key if body.api_key else None,
+        )
+        return {"models": models}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"{type(e).__name__}: {e}")
 def test_llm(
     db: Session = Depends(get_db),
     _user: str = Depends(get_current_user),

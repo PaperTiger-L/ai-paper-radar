@@ -176,6 +176,15 @@ class LlmTestOut(BaseModel):
     latency_ms: int = 0
 
 
+class LlmModelsIn(BaseModel):
+    base_url: str = ""  # 空=用已保存的
+    api_key: str = ""  # 空=用已保存的
+
+
+class LlmModelsOut(BaseModel):
+    models: list[str] = []
+
+
 class SmtpConfigOut(BaseModel):
     host: str = ""
     port: int = 587

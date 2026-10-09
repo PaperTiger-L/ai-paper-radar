@@ -222,7 +222,6 @@ export function Modal({
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-[rgba(2,3,6,.7)] backdrop-blur-[2px]"
-        onClick={onClose}
       />
       <div
         className={`fade-in relative flex max-h-[88vh] flex-col border border-hair bg-panel shadow-[0_40px_120px_-30px_rgba(0,0,0,.9)] ${
