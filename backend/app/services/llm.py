@@ -264,9 +264,12 @@ def filter_papers(db, profile: dict, candidates: list[dict]) -> list[dict]:
         )
     user_prompt = (
         "用户研究档案：\n"
+        f"- 学科：{', '.join(profile.get('discipline_names') or [])}\n"
+        f"- 研究方向：{profile.get('research_direction', '')}\n"
         f"- 研究领域：{profile.get('field', '')}\n"
         f"- 当前研究问题：{profile.get('research_problem', '')}\n"
-        f"- 关注方法：{profile.get('methods', '')}\n\n"
+        f"- 关注方法：{profile.get('methods', '')}\n"
+        f"- 关键词：{', '.join(profile.get('keywords') or [])}\n\n"
         f"候选论文（共 {len(candidates)} 篇）：\n" + "\n".join(lines) + "\n\n"
         "请评估每篇论文与用户研究问题的相关性：score 0-10（10=高度相关），"
         "并用中文一句话说明理由。\n"

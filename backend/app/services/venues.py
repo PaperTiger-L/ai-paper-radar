@@ -56,32 +56,29 @@ def discipline_names(discipline_ids: list[str]) -> list[str]:
     return [dmap[d]["name"] if d in dmap else d for d in (discipline_ids or [])]
 
 
-def all_venue_names(discipline_ids: list[str]) -> list[str]:
-    """所选学科的全部刊会名（供前端默认全选）。"""
-    names: list[str] = []
-    dmap = discipline_map()
-    for did in discipline_ids or []:
-        d = dmap.get(did)
-        if d:
-            names.extend(v["name"] for v in d.get("venues", []))
-    # 去重保序
-    seen: set[str] = set()
-    out = []
-    for n in names:
-        if n not in seen:
-            seen.add(n)
-            out.append(n)
-    return out
+# 预印本服务器识别（按 venue 名关键字）
+_PREPRINT_SERVERS = ("biorxiv", "medrxiv", "ssrn", "arxiv")
+
+
+def _preprint_server(venue_name: str) -> str:
+    v = (venue_name or "").lower()
+    for key in _PREPRINT_SERVERS:
+        if key in v:
+            return key
+    return "arxiv"
 
 
 def venue_allowed(venue: str | None, is_preprint: bool,
                   categories: list[str] | None,
                   selected_venues: list[str],
-                  arxiv_prefixes: list[str]) -> bool:
+                  arxiv_prefixes: list[str],
+                  preprint_open: bool = False) -> bool:
     """硬过滤：判断单篇论文的 venue 是否在用户所选刊会范围内。
 
     - selected 为空 -> 不限制（兜底，避免误杀出空周报）
-    - arXiv 预印本：需选中 arXiv，且分类前缀命中所选学科的 arXiv 分类
+    - 预印本：按 bioRxiv / medRxiv / SSRN / arXiv 分别匹配用户勾选；
+      arXiv 额外按分类前缀过滤（无分类信息时无法证伪则放行，靠 LLM 打分二次把关）；
+      preprint_open=True 时（老画像无学科信息）放行所有预印本
     - 期刊/会议：venue 名（或别名）包含所选刊会名即命中
     """
     selected = [v.strip().lower() for v in (selected_venues or []) if v and v.strip()]
@@ -89,17 +86,23 @@ def venue_allowed(venue: str | None, is_preprint: bool,
         return True
     vname = (venue or "").strip().lower()
     amap = venue_alias_map()
+    server = _preprint_server(vname)
 
-    if is_preprint or vname == "arxiv":
-        if "arxiv" not in selected:
-            return False
-        if not arxiv_prefixes:
+    # 预印本分支：arXiv / bioRxiv / medRxiv / SSRN 各自独立匹配用户勾选
+    if is_preprint or server != "arxiv" or vname == "arxiv":
+        if preprint_open:
             return True
-        cats = [(c or "").strip().lower() for c in (categories or [])]
-        return any(c.startswith(p) for c in cats for p in arxiv_prefixes)
+        if server not in selected:
+            return False
+        if server == "arxiv" and arxiv_prefixes:
+            cats = [(c or "").strip().lower() for c in (categories or [])]
+            if not cats:
+                return True  # OpenAlex 不提供 arXiv 分类，无法证伪则放行
+            return any(c.startswith(p) for c in cats for p in arxiv_prefixes)
+        return True
 
     for sel in selected:
-        if sel == "arxiv":
+        if sel in _PREPRINT_SERVERS:
             continue
         candidates = amap.get(sel, [sel])
         if any(c and c in vname for c in candidates):

@@ -160,20 +160,23 @@ def _profile_of(sub: Subscriber) -> dict:
 
 def _apply_venue_filter(db, tag: str, profile: dict,
                         candidates: list) -> list:
-    """硬过滤：只保留所选刊会（或 arXiv 指定分类）范围内的候选论文。
+    """硬过滤：只保留所选刊会（或所选预印本源）范围内的候选论文。
 
     在 LLM 打分之前执行，省掉被滤掉论文的 LLM 调用。
-    未选任何刊会时不限制（兜底，避免画像不全的用户直接空周报）。
+    未选任何刊会时不限制（兜底，避免画像不全的用户直接空周报）；
+    老画像（无学科信息）对预印本放行，避免无声的行为变更。
     """
     selected = [v for v in (profile.get("venues") or []) if v and v.strip()]
     if not selected:
         return candidates
     prefixes = profile.get("arxiv_prefixes") or []
+    # 老用户：disciplines 为空但 venues 非空（旧版画像），预印本一律放行
+    preprint_open = not profile.get("disciplines")
     kept = [
         c for c in candidates
         if venues_service.venue_allowed(
             c.venue, c.is_preprint, getattr(c, "categories", None),
-            selected, prefixes)
+            selected, prefixes, preprint_open=preprint_open)
     ]
     dropped = len(candidates) - len(kept)
     if dropped:
@@ -231,12 +234,13 @@ def _process_subscriber(db, job_id: str, sub: Subscriber, send_email: bool, forc
         # 3. 检索 + 去重
         _progress(20, "检索论文")
         candidates = search_service.search_all(queries, db)
-        run.papers_found = len(candidates)
         db.commit()
 
         # 3.5 刊会硬过滤（在 LLM 打分前执行，省掉无关论文的 LLM 调用）
         _progress(35, "按所选刊会过滤")
         candidates = _apply_venue_filter(db, tag, profile, candidates)
+        run.papers_found = len(candidates)
+        db.commit()
 
         # 4. LLM 打分筛选
         _progress(50, "筛选论文")
@@ -328,10 +332,14 @@ def _process_subscriber(db, job_id: str, sub: Subscriber, send_email: bool, forc
         run.digest_html = html
         db.commit()
 
-        # 7. 发送邮件
+        # 7. 发送邮件（无推荐论文时不发送，避免"空周报"打扰用户）
         _progress(95, "发送邮件")
         if send_email:
-            if emailer.smtp_configured(db):
+            if not items:
+                run.email_status = "skipped"
+                run.email_error = "本周无符合刊会范围且相关度达标的论文，跳过发送"
+                utils.log_event(db, "email", "INFO", f"{tag} 无推荐论文，邮件跳过发送")
+            elif emailer.smtp_configured(db):
                 try:
                     emailer.send_email(db, sub.email, subject, html)
                     run.email_status = "sent"

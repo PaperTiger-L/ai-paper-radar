@@ -23,8 +23,13 @@ router = APIRouter(prefix="/api/config", tags=["config"])
 def get_venue_library(
     _user: str = Depends(get_current_user),
 ):
-    """返回学科 -> 期刊/顶会预设库（供订阅用户表单的学科多选与刊会联动使用）。"""
-    return venues_service.load_library()
+    """返回学科 -> 期刊/顶会预设库（供订阅用户表单的学科多选与刊会联动使用）。
+
+    注意：venues.py 用 lru_cache 缓存，修改 venues.json 后需重启进程生效。
+    """
+    lib = venues_service.load_library()
+    # 过滤内部注释键（如 _comment），不外泄给前端
+    return {k: v for k, v in lib.items() if not k.startswith("_")}
 
 
 # ---------------------------------------------------------------------------

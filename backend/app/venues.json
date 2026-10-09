@@ -1,5 +1,4 @@
 {
-  "_comment": "学科 -> 期刊/顶会 预设库（全门类版草案，待 Tiger 确认）。category=门类，type: conference=顶会, journal=期刊",
   "disciplines": [
     {
       "category": "综合",
@@ -16,7 +15,10 @@
         },
         {
           "name": "PNAS",
-          "type": "journal"
+          "type": "journal",
+          "aliases": [
+            "Proceedings of the National Academy of Sciences"
+          ]
         },
         {
           "name": "Nature Communications",
@@ -138,7 +140,10 @@
       "venues": [
         {
           "name": "JACS",
-          "type": "journal"
+          "type": "journal",
+          "aliases": [
+            "Journal of the American Chemical Society"
+          ]
         },
         {
           "name": "Angewandte Chemie",
@@ -313,10 +318,17 @@
         },
         {
           "name": "PNAS",
-          "type": "journal"
+          "type": "journal",
+          "aliases": [
+            "Proceedings of the National Academy of Sciences"
+          ]
         },
         {
           "name": "arXiv",
+          "type": "preprint"
+        },
+        {
+          "name": "bioRxiv",
           "type": "preprint"
         }
       ],
@@ -398,15 +410,24 @@
         },
         {
           "name": "JMLR",
-          "type": "journal"
+          "type": "journal",
+          "aliases": [
+            "Journal of Machine Learning Research"
+          ]
         },
         {
           "name": "TPAMI",
-          "type": "journal"
+          "type": "journal",
+          "aliases": [
+            "IEEE Transactions on Pattern Analysis and Machine Intelligence"
+          ]
         },
         {
           "name": "TNNLS",
-          "type": "journal"
+          "type": "journal",
+          "aliases": [
+            "IEEE Transactions on Neural Networks and Learning Systems"
+          ]
         },
         {
           "name": "arXiv",
@@ -669,6 +690,10 @@
         {
           "name": "Annals of Internal Medicine",
           "type": "journal"
+        },
+        {
+          "name": "medRxiv",
+          "type": "preprint"
         }
       ]
     },
@@ -696,6 +721,10 @@
         {
           "name": "Bulletin of the World Health Organization",
           "type": "journal"
+        },
+        {
+          "name": "medRxiv",
+          "type": "preprint"
         }
       ]
     },
@@ -723,6 +752,10 @@
         {
           "name": "Drug Discovery Today",
           "type": "journal"
+        },
+        {
+          "name": "bioRxiv",
+          "type": "preprint"
         }
       ]
     },
@@ -808,6 +841,10 @@
         {
           "name": "arXiv",
           "type": "preprint"
+        },
+        {
+          "name": "SSRN",
+          "type": "preprint"
         }
       ],
       "arxiv_categories": [
@@ -839,6 +876,10 @@
         {
           "name": "Journal of Financial Economics",
           "type": "journal"
+        },
+        {
+          "name": "SSRN",
+          "type": "preprint"
         }
       ]
     },
@@ -866,14 +907,6 @@
         {
           "name": "American Journal of International Law",
           "type": "journal"
-        },
-        {
-          "name": "《中国法学》",
-          "type": "journal"
-        },
-        {
-          "name": "《法学研究》",
-          "type": "journal"
         }
       ]
     },
@@ -900,25 +933,6 @@
         },
         {
           "name": "Computers & Education",
-          "type": "journal"
-        }
-      ]
-    },
-    {
-      "category": "文学",
-      "id": "chinlit",
-      "name": "中国语言文学",
-      "venues": [
-        {
-          "name": "《文学评论》",
-          "type": "journal"
-        },
-        {
-          "name": "《文艺研究》",
-          "type": "journal"
-        },
-        {
-          "name": "《中国现代文学研究丛刊》",
           "type": "journal"
         }
       ]
@@ -954,10 +968,6 @@
         {
           "name": "New Media & Society",
           "type": "journal"
-        },
-        {
-          "name": "《新闻与传播研究》",
-          "type": "journal"
         }
       ]
     },
@@ -976,14 +986,6 @@
         },
         {
           "name": "Past & Present",
-          "type": "journal"
-        },
-        {
-          "name": "《历史研究》",
-          "type": "journal"
-        },
-        {
-          "name": "《中国史研究》",
           "type": "journal"
         }
       ]
@@ -1008,10 +1010,6 @@
         {
           "name": "Noûs",
           "type": "journal"
-        },
-        {
-          "name": "《哲学研究》",
-          "type": "journal"
         }
       ]
     },
@@ -1034,21 +1032,6 @@
         },
         {
           "name": "Design Issues",
-          "type": "journal"
-        }
-      ]
-    },
-    {
-      "category": "军事学",
-      "id": "mil",
-      "name": "军事学",
-      "venues": [
-        {
-          "name": "《中国军事科学》",
-          "type": "journal"
-        },
-        {
-          "name": "《军事历史》",
           "type": "journal"
         }
       ]

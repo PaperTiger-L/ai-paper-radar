@@ -51,7 +51,7 @@ function toForm(s?: Subscriber): FormState {
     email: s.email,
     disciplines: [...(s.disciplines ?? [])],
     research_direction: s.research_direction ?? '',
-    research_problem: s.research_problem,
+    research_problem: s.research_problem ?? '',
     methods: s.methods ?? '',
     keywords: [...(s.keywords ?? [])],
     venues: [...(s.venues ?? [])],
@@ -298,9 +298,20 @@ function VenuePicker({
     );
   }
 
+  // 同一刊名可能出现在多个学科下（如 Nature、arXiv），只渲染一次避免视觉重复
+  const seen = new Set<string>();
+  const deduped = groups.map((d) => ({
+    name: d.name,
+    venues: d.venues.filter((v) => {
+      if (seen.has(v.name)) return false;
+      seen.add(v.name);
+      return true;
+    }),
+  }));
+
   return (
     <div>
-      {groups.map((d) => renderGroup(d.name, d.venues))}
+      {deduped.map((d) => renderGroup(d.name, d.venues))}
       {customs.length > 0 && renderGroup('自定义', customs.map((name) => ({ name, type: 'custom' })))}
       <div className="flex gap-2">
         <Input

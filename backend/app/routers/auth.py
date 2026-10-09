@@ -13,11 +13,11 @@ def login(
     body: schemas.LoginIn,
     request: Request,
     db: Session = Depends(get_db),
-    _rl: None = Depends(ratelimit.login_rate_limit),
+    _rl: None = Depends(ratelimit.check_login_rate_limit),
 ):
     """管理员登录。成功返回 {token, username, expires_in}；失败 401。
 
-    每个 IP 60 秒内最多尝试 10 次，超限返回 429（防暴力破解）。
+    每个 IP 60 秒内失败尝试超过 10 次返回 429（防暴力破解；成功登录不计数）。
     """
     expected_username = utils.get_setting(db, security.ADMIN_USERNAME_KEY)
     stored_hash = utils.get_setting(db, security.ADMIN_HASH_KEY)
@@ -28,6 +28,7 @@ def login(
     )
     if not ok:
         # 只记录用户名，不记录密码
+        ratelimit.record_login_attempt(request)
         utils.log_event(db, "auth", "WARNING", f"登录失败：用户名 {body.username}")
         raise HTTPException(status_code=401, detail="用户名或密码错误")
     token, expires_in = security.create_token(db, body.username, remember=body.remember)

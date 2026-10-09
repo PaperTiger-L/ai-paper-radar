@@ -35,19 +35,35 @@ def _prune(now: float) -> None:
         del _attempts[ip]
 
 
-def login_rate_limit(request: Request) -> None:
-    """登录接口的限流依赖：超限抛 429。"""
+def _count(ip: str, now: float) -> int:
+    """窗口内已记录的失败尝试次数（调用方已持有锁）。"""
+    return sum(1 for t in _attempts.get(ip, []) if now - t < WINDOW_SECONDS)
+
+
+def check_login_rate_limit(request: Request) -> None:
+    """登录接口的限流检查（依赖项）：超限抛 429，不计入本次。"""
     ip = _client_ip(request)
-    now = time.monotonic()
     with _lock:
-        hits = [t for t in _attempts.get(ip, []) if now - t < WINDOW_SECONDS]
-        if len(hits) >= MAX_ATTEMPTS:
+        if _count(ip, time.monotonic()) >= MAX_ATTEMPTS:
             raise HTTPException(
                 status_code=429,
                 detail=f"登录尝试过于频繁，请 {int(WINDOW_SECONDS)} 秒后再试",
             )
+
+
+def record_login_attempt(request: Request) -> None:
+    """记录一次失败的登录尝试（只在凭证校验失败后调用）。"""
+    ip = _client_ip(request)
+    now = time.monotonic()
+    with _lock:
+        hits = [t for t in _attempts.get(ip, []) if now - t < WINDOW_SECONDS]
         hits.append(now)
         _attempts[ip] = hits
-        # 每 ~50 次记录做一次清理，避免高频调用时每次都扫全表
         if sum(len(v) for v in _attempts.values()) % 50 == 0:
             _prune(now)
+
+
+def login_rate_limit(request: Request) -> None:
+    """兼容旧依赖：检查 + 记录（新代码请用 check/record 组合）。"""
+    check_login_rate_limit(request)
+    record_login_attempt(request)
