@@ -357,13 +357,12 @@ function SubscriberModal({
     const next = has ? form.disciplines.filter((x) => x !== id) : [...form.disciplines, id];
     const libNames = libraryVenueNames(library);
     if (has) {
-      const removed = new Set(
-        (library?.disciplines ?? []).find((d) => d.id === id)?.venues.map((v) => v.name) ?? [],
-      );
+      // 只移除"不再属于任何已选学科"的刊会；自定义项始终保留
+      const remaining = new Set(unionVenues(library, next));
       setForm((f) => ({
         ...f,
         disciplines: next,
-        venues: f.venues.filter((v) => !removed.has(v) || !libNames.has(v)),
+        venues: f.venues.filter((v) => remaining.has(v) || !libNames.has(v)),
       }));
     } else {
       const added = unionVenues(library, [id]).filter((v) => !form.venues.includes(v));
