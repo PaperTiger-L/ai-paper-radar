@@ -148,6 +148,15 @@ def index():
     return PlainTextResponse("登录页面缺失：app/static/index.html 不存在", status_code=404)
 
 
+@app.get("/three.min.js", include_in_schema=False)
+def three_js():
+    """登录页动画依赖的 three.js：本地 serving，不依赖外部 CDN。"""
+    js_file = STATIC_DIR / "three.min.js"
+    if js_file.is_file():
+        return FileResponse(js_file, media_type="application/javascript")
+    return PlainTextResponse("three.min.js 缺失", status_code=404)
+
+
 if ADMIN_DIR.is_dir():
     # 管理后台前端构建产物（Docker 构建时复制到此目录）
     app.mount("/admin", StaticFiles(directory=str(ADMIN_DIR), html=True), name="admin")
