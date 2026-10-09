@@ -231,9 +231,13 @@ def _process_subscriber(db, job_id: str, sub: Subscriber, send_email: bool, forc
             queries = llm_service.fallback_queries(profile)
         utils.log_event(db, "pipeline", "INFO", f"{tag} 检索词：{queries}")
 
-        # 3. 检索 + 去重
+        # 3. 检索 + 去重（取数窗口：上周一 ~ 上周日）
         _progress(20, "检索论文")
-        candidates = search_service.search_all(queries, db)
+        report_start = ws - dt.timedelta(days=7)  # 上周一
+        report_end = ws - dt.timedelta(days=1)    # 上周日
+        utils.log_event(db, "pipeline", "INFO",
+                        f"{tag} 检索窗口：{report_start} ~ {report_end}")
+        candidates = search_service.search_all(queries, db, since=report_start, until=report_end)
         db.commit()
 
         # 3.5 刊会硬过滤（在 LLM 打分前执行，省掉无关论文的 LLM 调用）
@@ -326,8 +330,8 @@ def _process_subscriber(db, job_id: str, sub: Subscriber, send_email: bool, forc
             [{"title": it["title"], "venue": it["venue"], "innovations": it["innovations"],
               "recommend_reason": it["recommend_reason"]} for it in items],
         )
-        week_end = ws + dt.timedelta(days=6)
-        subject, html = emailer.build_digest_html(sub.name, ws, week_end, items, sections)
+        # 邮件标题显示上周一 ~ 上周日
+        subject, html = emailer.build_digest_html(sub.name, report_start, report_end, items, sections)
         run.digest_subject = subject
         run.digest_html = html
         db.commit()

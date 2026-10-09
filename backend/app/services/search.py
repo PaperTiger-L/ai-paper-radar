@@ -296,13 +296,16 @@ def dedupe(candidates: list[PaperCandidate]) -> list[PaperCandidate]:
     return unique
 
 
-def search_all(queries: list[str], db=None) -> list[PaperCandidate]:
+def search_all(queries: list[str], db=None,
+               since: dt.date | None = None,
+               until: dt.date | None = None) -> list[PaperCandidate]:
     """对每个查询词分别检索 OpenAlex + arXiv，合并去重后返回。
 
+    since/until 为空时默认最近 7 天（含今天）。
     db 可选：传入则记录每个查询词的检索日志。
     """
-    until = utils.today()
-    since = until - dt.timedelta(days=6)  # 最近 7 天（含今天）
+    until = until or utils.today()
+    since = since or (until - dt.timedelta(days=6))
     all_candidates: list[PaperCandidate] = []
     for q in queries:
         q = (q or "").strip()
