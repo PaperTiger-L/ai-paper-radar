@@ -29,11 +29,12 @@ def create_subscriber(
     db: Session = Depends(get_db),
     _user: str = Depends(get_current_user),
 ):
-    """新增订阅用户（name / email 必填，email 唯一）。"""
+    """新增订阅用户（email 必填且唯一；name 为空时自动取邮箱前缀）。"""
     if db.query(Subscriber).filter(Subscriber.email == body.email).first():
         raise HTTPException(status_code=400, detail="该邮箱已存在")
+    name = body.name.strip() or body.email.split("@")[0]
     sub = Subscriber(
-        name=body.name,
+        name=name,
         email=body.email,
         field=body.field,
         research_problem=body.research_problem,

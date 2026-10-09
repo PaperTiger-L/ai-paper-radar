@@ -93,10 +93,9 @@ class SubscriberBase(BaseModel):
 class SubscriberCreate(SubscriberBase):
     @field_validator("name")
     @classmethod
-    def _name_required(cls, v: str) -> str:
-        if not (v or "").strip():
-            raise ValueError("用户名称必填")
-        return v.strip()
+    def _name_strip(cls, v: str) -> str:
+        # 名称选填：为空时后端用邮箱前缀自动填充
+        return (v or "").strip()
 
     @field_validator("email")
     @classmethod

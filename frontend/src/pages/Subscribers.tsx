@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, errorMessage } from '../api';
-import type { Subscriber, VenueLists } from '../types';
+import type { Subscriber } from '../types';
 import {
   Badge,
   Button,
@@ -9,7 +9,6 @@ import {
   Input,
   Modal,
   PageHeader,
-  Select,
   Spinner,
   TableShell,
   Textarea,
@@ -59,94 +58,6 @@ function toForm(s?: Subscriber): FormState {
   };
 }
 
-function VenuePicker({
-  value,
-  onChange,
-  customVenue,
-  onCustomVenue,
-}: {
-  value: string[];
-  onChange: (v: string[]) => void;
-  customVenue: string;
-  onCustomVenue: (v: string) => void;
-}) {
-  const [lists, setLists] = useState<VenueLists | null>(null);
-
-  useEffect(() => {
-    api
-      .get<VenueLists>('/venues')
-      .then(setLists)
-      .catch(() => {});
-  }, []);
-
-  const toggle = (v: string) => {
-    onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
-  };
-
-  const addCustom = () => {
-    const v = customVenue.trim();
-    if (!v) return;
-    if (!value.includes(v)) onChange([...value, v]);
-    onCustomVenue('');
-  };
-
-  const renderGroup = (title: string, items: string[]) => (
-    <div className="mb-3">
-      <div className="mb-1.5 font-mono text-[10px] tracking-[0.2em] text-faint">{title}</div>
-      <div className="flex flex-wrap gap-2">
-        {items.map((v) => {
-          const on = value.includes(v);
-          return (
-            <button
-              key={v}
-              type="button"
-              onClick={() => toggle(v)}
-              className={`border px-2.5 py-1 text-[12px] transition-colors ${
-                on
-                  ? 'border-[rgba(83,230,166,.55)] bg-[rgba(83,230,166,.12)] text-ink'
-                  : 'border-hair bg-[rgba(150,160,190,.04)] text-mute hover:border-hair-2 hover:text-ink'
-              }`}
-            >
-              {v}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  // 预设中没有、但用户已选的自定义项单独展示
-  const preset = [...(lists?.conferences ?? []), ...(lists?.journals ?? [])];
-  const customs = value.filter((v) => !preset.includes(v));
-
-  return (
-    <div>
-      {renderGroup('顶级会议', lists?.conferences ?? [])}
-      {renderGroup('顶级期刊', lists?.journals ?? [])}
-      {customs.length > 0 && renderGroup('自定义', customs)}
-      <div className="flex gap-2">
-        <Input
-          value={customVenue}
-          onChange={(e) => onCustomVenue(e.target.value)}
-          placeholder="输入自定义会议/期刊名称，回车添加"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              addCustom();
-            }
-          }}
-        />
-        <Button type="button" onClick={addCustom}>
-          添加
-        </Button>
-      </div>
-      {value.length > 0 && (
-        <div className="mt-2 font-mono text-[11px] text-faint">已选 {value.length} 个</div>
-      )}
-    </div>
-  );
-}
-
 function SubscriberModal({
   editing,
   onClose,
@@ -164,8 +75,8 @@ function SubscriberModal({
     setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async () => {
-    if (!form.name.trim() || !form.email.trim() || !form.field.trim() || !form.research_problem.trim()) {
-      toast('error', '请填写用户名称、接收邮箱、研究领域和当前研究问题');
+    if (!form.email.trim() || !form.field.trim()) {
+      toast('error', '请填写接收邮箱和研究领域');
       return;
     }
     setSaving(true);
@@ -208,9 +119,6 @@ function SubscriberModal({
       wide
     >
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="用户名称" required>
-          <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="如：张三" />
-        </Field>
         <Field label="接收邮箱" required>
           <Input
             type="email"
@@ -226,26 +134,8 @@ function SubscriberModal({
             placeholder="如：大语言模型、计算机视觉"
           />
         </Field>
-        <Field label="推荐论文数量" hint="每周推荐的论文数量">
-          <Input
-            type="number"
-            min={1}
-            max={50}
-            value={form.papers_per_week}
-            onChange={(e) => set('papers_per_week', Number(e.target.value))}
-          />
-        </Field>
         <div className="md:col-span-2">
-          <Field label="当前研究问题" required hint="用自然语言描述目前重点关注的科研问题，系统据此理解研究需求">
-            <Textarea
-              value={form.research_problem}
-              onChange={(e) => set('research_problem', e.target.value)}
-              placeholder="例如：如何让多智能体系统在长程任务中保持稳定的协作与记忆…"
-            />
-          </Field>
-        </div>
-        <div className="md:col-span-2">
-          <Field label="关注的研究方法" hint="如：强化学习、RAG、Agent、深度学习">
+          <Field label="研究方法" hint="如：强化学习、RAG、Agent、深度学习">
             <Textarea
               value={form.methods}
               onChange={(e) => set('methods', e.target.value)}
@@ -253,27 +143,22 @@ function SubscriberModal({
             />
           </Field>
         </div>
-        <div className="md:col-span-2">
-          <Field label="关键词" hint="逗号分隔，用于辅助搜索">
-            <Input
-              value={form.keywords}
-              onChange={(e) => set('keywords', e.target.value)}
-              placeholder="LLM, multi-agent, RAG"
-            />
-          </Field>
-        </div>
-        <div className="md:col-span-2">
-          <Field label="关注的会议 / 期刊" hint="从预设中多选，也可自定义输入">
-            <VenuePicker
-              value={form.venues}
-              onChange={(v) => set('venues', v)}
-              customVenue={form.customVenue}
-              onCustomVenue={(v) => set('customVenue', v)}
-            />
-          </Field>
-        </div>
-        <div className="md:col-span-2">
-          <Toggle checked={form.enabled} onChange={(v) => set('enabled', v)} label="启用邮件推送" />
+        <div className="md:col-span-2 border-t border-hair pt-4">
+          <div className="mb-3 font-mono text-[10px] tracking-[0.24em] text-faint">订阅推送计划</div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="每周推荐论文数量" hint="1~50 篇">
+              <Input
+                type="number"
+                min={1}
+                max={50}
+                value={form.papers_per_week}
+                onChange={(e) => set('papers_per_week', Number(e.target.value))}
+              />
+            </Field>
+            <div className="flex items-end pb-1">
+              <Toggle checked={form.enabled} onChange={(v) => set('enabled', v)} label="启用邮件推送" />
+            </div>
+          </div>
         </div>
       </div>
       <div className="mt-6 flex justify-end gap-3">
@@ -363,11 +248,10 @@ export default function Subscribers() {
           <Spinner /> 加载中…
         </div>
       ) : (
-        <TableShell head={['用户', '接收邮箱', '研究领域', '每周推荐', '推送状态', '操作']}>
+        <TableShell head={['接收邮箱', '研究领域', '每周推荐', '推送状态', '操作']}>
           {list.map((s) => (
             <tr key={s.id} className="border-b border-[rgba(150,160,190,.08)] last:border-0 hover:bg-[rgba(150,160,190,.03)]">
-              <td className="px-4 py-3 text-ink">{s.name}</td>
-              <td className="px-4 py-3 font-mono text-[12px] text-mute">{s.email}</td>
+              <td className="px-4 py-3 font-mono text-[12px] text-ink">{s.email}</td>
               <td className="max-w-[220px] truncate px-4 py-3 text-mute" title={s.field}>
                 {s.field}
               </td>
@@ -401,7 +285,7 @@ export default function Subscribers() {
           ))}
           {list.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-4 py-10 text-center font-mono text-[11px] tracking-[0.2em] text-faint">
+              <td colSpan={5} className="px-4 py-10 text-center font-mono text-[11px] tracking-[0.2em] text-faint">
                 暂无订阅用户，点击右上角添加
               </td>
             </tr>
@@ -419,7 +303,7 @@ export default function Subscribers() {
       {deleting && (
         <ConfirmModal
           title="删除订阅用户"
-          message={`确定删除「${deleting.name}」（${deleting.email}）吗？该用户将不再收到论文周报，此操作不可恢复。`}
+          message={`确定删除订阅用户 ${deleting.email} 吗？该用户将不再收到论文周报，此操作不可恢复。`}
           onConfirm={confirmDelete}
           onClose={() => setDeleting(null)}
           loading={deletingLoading}
