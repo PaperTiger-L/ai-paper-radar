@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, errorMessage } from '../api';
 import type { Discipline, Subscriber, VenueLibrary } from '../types';
 import {
@@ -144,8 +144,8 @@ function KeywordTags({
   );
 }
 
-/** 学科多选：按门类分组展示 */
-function DisciplinePicker({
+/** 学科多选下拉框：按门类分组，支持搜索 */
+function DisciplineDropdown({
   library,
   value,
   onToggle,
@@ -154,51 +154,115 @@ function DisciplinePicker({
   value: string[];
   onToggle: (id: string) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open ]);
+
+  const nameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const d of library?.disciplines ?? []) m.set(d.id, d.name);
+    return m;
+  }, [library]);
+
   const groups = useMemo(() => {
+    const q = query.trim();
     const m = new Map<string, Discipline[]>();
     for (const d of library?.disciplines ?? []) {
+      if (q && !d.name.includes(q) && !d.category.includes(q)) continue;
       const g = m.get(d.category) ?? [];
       g.push(d);
       m.set(d.category, g);
     }
     return [...m.entries()];
-  }, [library]);
+  }, [library, query]);
 
-  const toggle = useCallback(
-    (id: string) => onToggle(id),
-    [onToggle],
-  );
-
-  if (!library) return <div className="font-mono text-[12px] text-faint">刊会库加载中…</div>;
+  const selectedNames = value.map((id) => nameMap.get(id) ?? id);
 
   return (
-    <div className="space-y-3">
-      {groups.map(([cat, items]) => (
-        <div key={cat}>
-          <div className="mb-1.5 font-mono text-[10px] tracking-[0.2em] text-faint">{cat}</div>
-          <div className="flex flex-wrap gap-2">
-            {items.map((d) => {
-              const on = value.includes(d.id);
-              return (
-                <button
-                  key={d.id}
-                  type="button"
-                  onClick={() => toggle(d.id)}
-                  className={`border px-2.5 py-1 text-[12px] transition-colors ${
-                    on
-                      ? 'border-[rgba(83,230,166,.55)] bg-[rgba(83,230,166,.12)] text-ink'
-                      : 'border-hair bg-[rgba(150,160,190,.04)] text-mute hover:border-hair-2 hover:text-ink'
-                  }`}
-                >
-                  {d.name}
-                </button>
-              );
-            })}
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 border border-hair bg-[rgba(150,160,190,.04)] px-3 py-2 text-left text-[13px] text-ink outline-none transition-colors hover:border-hair-2"
+      >
+        <span className={`truncate ${selectedNames.length ? '' : 'text-faint'}`}>
+          {selectedNames.length ? selectedNames.join('、') : '请选择学科（可多选）'}
+        </span>
+        <span className="shrink-0 font-mono text-[11px] text-faint">
+          {value.length > 0 ? `已选${value.length}` : ''} {open ? '▴' : '▾'}
+        </span>
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[320px] overflow-y-auto border border-hair-2 bg-panel shadow-[0_24px_60px_-12px_rgba(0,0,0,.8)]">
+          <div className="sticky top-0 border-b border-hair bg-panel p-2">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="搜索学科…"
+              autoFocus
+            />
           </div>
+          {groups.length === 0 && (
+            <div className="px-3 py-4 text-center font-mono text-[12px] text-faint">无匹配学科</div>
+          )}
+          {groups.map(([cat, items]) => (
+            <div key={cat} className="py-1">
+              <div className="px-3 pb-1 pt-1 font-mono text-[10px] tracking-[0.2em] text-faint">
+                {cat}
+              </div>
+              {items.map((d) => {
+                const on = value.includes(d.id);
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => onToggle(d.id)}
+                    className="flex w-full items-center gap-2.5 px-3 py-[7px] text-left transition-colors hover:bg-[rgba(150,160,190,.06)]"
+                  >
+                    <span
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center border text-[11px] ${
+                        on
+                          ? 'border-[rgba(83,230,166,.7)] bg-[rgba(83,230,166,.25)] text-ink'
+                          : 'border-hair-2 text-transparent'
+                      }`}
+                    >
+                      ✓
+                    </span>
+                    <span className={`text-[13px] ${on ? 'text-ink' : 'text-mute'}`}>{d.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+          {value.length > 0 && (
+            <div className="sticky bottom-0 flex items-center justify-between border-t border-hair bg-panel px-3 py-2">
+              <span className="font-mono text-[11px] text-faint">已选 {value.length} 个</span>
+              <button
+                type="button"
+                className="font-mono text-[11px] text-mute hover:text-danger"
+                onClick={() => value.forEach((id) => onToggle(id))}
+              >
+                清空
+              </button>
+            </div>
+          )}
         </div>
-      ))}
-      {value.length > 0 && (
-        <div className="font-mono text-[11px] text-faint">已选 {value.length} 个学科</div>
       )}
     </div>
   );
@@ -444,7 +508,7 @@ function SubscriberModal({
       <div className="mb-3 mt-6 font-mono text-[10px] tracking-[0.24em] text-faint">研究画像</div>
       <div className="grid gap-4">
         <Field label="学科" required hint="多选，下方会自动列出对应学科的期刊 / 顶会">
-          <DisciplinePicker library={library} value={form.disciplines} onToggle={toggleDiscipline} />
+          <DisciplineDropdown library={library} value={form.disciplines} onToggle={toggleDiscipline} />
         </Field>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="研究方向" hint="一句话，如：大模型推理加速">

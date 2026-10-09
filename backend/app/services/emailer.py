@@ -173,7 +173,7 @@ def build_digest_html(subscriber_name: str, week_start, week_end,
         f'<div style="font-size:26px;font-weight:800;color:#ffffff;'
         f'line-height:1.3;">论文周报</div>'
         f'<div style="font-size:13px;color:{TEAL_BG};margin-top:8px;">'
-        f'{_esc(subscriber_name)} · {week_label} · {len(items)} 篇推荐</div>'
+        f'{week_label} · {len(items)} 篇推荐</div>'
         f'</td></tr></table>'
     )
 
