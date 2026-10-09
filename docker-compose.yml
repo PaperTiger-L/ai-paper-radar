@@ -13,3 +13,23 @@ services:
       # SQLite 数据持久化：容器重建/重启不丢失数据
       - ./data:/app/data
     restart: unless-stopped
+
+  # HTTPS 反向代理：对外提供 443/80，后端仍走内部 8000。
+  # 解决某些强制 HTTP 代理吞掉明文 HTTP POST（登录无响应）的问题。
+  caddy:
+    image: caddy:2-alpine
+    container_name: ai-paper-radar-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - paper-radar
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

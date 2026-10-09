@@ -46,6 +46,23 @@ docker compose up -d --build
 数据持久化：SQLite 文件保存在宿主机的 `./data/` 目录（compose 已挂载），
 容器重建、重启都不会丢失数据与配置。
 
+## HTTPS（推荐）
+
+compose 已内置 Caddy 反向代理（`Caddyfile`），对外提供 HTTPS，
+解决某些强制 HTTP 代理吞掉明文 HTTP 登录请求的问题：
+
+- 主地址：`https://35-212-150-187.nip.io`（自动申请受信任证书，浏览器零警告）
+- 备用：`https://35.212.150.187`（自签名证书，首次访问点"高级 -> 继续前往"）
+
+需要放行 TCP `80`/`443` 端口（系统防火墙与云厂商安全组/防火墙规则都要加）：
+
+```bash
+sudo ufw allow 80/tcp && sudo ufw allow 443/tcp   # 如使用 ufw
+```
+
+证书申请需要约 30 秒，之后即可用 HTTPS 地址登录。
+旧的 `http://服务器IP:8000/` 仍然可用（建议改用 HTTPS，密码不再明文传输）。
+
 ## 上手配置（首次使用，按顺序）
 
 1. **LLM 配置**：后台「LLM 配置」页填写 Base URL、API Key、模型名 → 保存 → 点「测试连接」。
