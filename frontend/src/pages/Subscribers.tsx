@@ -218,6 +218,7 @@ function SubscriberModal({
   const toast = useToast();
   const [form, setForm] = useState<FormState>(() => toForm(editing ?? undefined));
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -253,6 +254,19 @@ function SubscriberModal({
       toast('error', errorMessage(e));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const testSend = async () => {
+    if (!editing) return;
+    setTesting(true);
+    try {
+      await api.post(`/digest/test-send/${editing.id}`);
+      toast('success', `测试周报已发送到 ${editing.email}`);
+    } catch (e) {
+      toast('error', errorMessage(e));
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -338,11 +352,25 @@ function SubscriberModal({
           </div>
         </div>
       </div>
-      <div className="mt-6 flex justify-end gap-3">
-        <Button onClick={onClose}>取消</Button>
-        <Button variant="primary" loading={saving} onClick={submit}>
-          保存
-        </Button>
+      <div className="mt-6 flex items-center justify-between gap-3">
+        <div>
+          {editing && (
+            <Button
+              variant="ghost"
+              loading={testing}
+              onClick={testSend}
+              title="将该用户最近一次生成的周报（主题加 [测试]）发送到其邮箱，用于查看效果"
+            >
+              发送测试周报
+            </Button>
+          )}
+        </div>
+        <div className="flex gap-3">
+          <Button onClick={onClose}>取消</Button>
+          <Button variant="primary" loading={saving} onClick={submit}>
+            保存
+          </Button>
+        </div>
       </div>
     </Modal>
   );

@@ -2,9 +2,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from .. import schemas
+from .. import schemas, utils
 from ..deps import get_current_user, get_db
 from ..models import DigestRun, Subscriber
+from ..services import emailer
 
 router = APIRouter(prefix="/api/digest", tags=["digest"])
 
@@ -41,3 +42,28 @@ def preview_digest(
         "html": run.digest_html,
         "run_id": run.id,
     }
+
+
+@router.post("/test-send/{subscriber_id}", response_model=schemas.OkOut)
+def test_send_digest(
+    subscriber_id: int,
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
+):
+    """测试发送：将该用户最近一次成功的周报以 [测试] 主题发到其邮箱，用于查看效果。"""
+    sub = db.get(Subscriber, subscriber_id)
+    if sub is None:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    run = (
+        db.query(DigestRun)
+        .filter(DigestRun.subscriber_id == subscriber_id,
+                DigestRun.status == "success")
+        .order_by(DigestRun.started_at.desc())
+        .first()
+    )
+    if run is None or not run.digest_html:
+        raise HTTPException(status_code=404, detail="暂无可发送的测试周报，请先运行一次流水线生成周报")
+    subject = f"[测试] {run.digest_subject or 'AI Paper Radar 周报'}"
+    emailer.send_email(db, sub.email, subject, run.digest_html)
+    utils.log_event(db, "email", "INFO", f"测试周报已发送 to={sub.email}（用户 {sub.name}，run={run.id}）")
+    return {"ok": True}
