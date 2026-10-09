@@ -48,6 +48,21 @@ class ChangePasswordIn(BaseModel):
         return v
 
 
+class ChangeUsernameIn(BaseModel):
+    new_username: str
+    current_password: str
+
+    @field_validator("new_username")
+    @classmethod
+    def _username_valid(cls, v: str) -> str:
+        v = (v or "").strip()
+        if not v:
+            raise ValueError("新用户名不能为空")
+        if len(v) > 128:
+            raise ValueError("新用户名过长（最多 128 字符）")
+        return v
+
+
 class OkOut(BaseModel):
     ok: bool = True
 

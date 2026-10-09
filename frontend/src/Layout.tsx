@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { api, clearToken, errorMessage } from './api';
+import { api, clearToken, errorMessage, setToken } from './api';
 import {
   Button,
   Field,
@@ -19,14 +19,50 @@ const NAV = [
   { to: '/logs', label: '日志管理' },
 ];
 
-function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+function AccountSettingsModal({ currentUsername, onClose, onUsernameChanged }: { currentUsername: string; onClose: () => void; onUsernameChanged: (u: string) => void }) {
   const toast = useToast();
+  // 修改用户名
+  const [newUsername, setNewUsername] = useState(currentUsername);
+  const [usernamePwd, setUsernamePwd] = useState('');
+  const [usernameLoading, setUsernameLoading] = useState(false);
+  // 修改密码
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [pwdLoading, setPwdLoading] = useState(false);
 
-  const submit = async () => {
+  const submitUsername = async () => {
+    const v = newUsername.trim();
+    if (!v) {
+      toast('error', '新用户名不能为空');
+      return;
+    }
+    if (v === currentUsername) {
+      toast('error', '新用户名与当前用户名相同');
+      return;
+    }
+    if (!usernamePwd) {
+      toast('error', '请输入当前密码以确认');
+      return;
+    }
+    setUsernameLoading(true);
+    try {
+      const r = await api.post<{ token: string; username: string; expires_in: number }>('/auth/change-username', {
+        new_username: v,
+        current_password: usernamePwd,
+      });
+      setToken(r.token);
+      onUsernameChanged(r.username);
+      toast('success', '用户名修改成功');
+      setUsernamePwd('');
+    } catch (e) {
+      toast('error', errorMessage(e));
+    } finally {
+      setUsernameLoading(false);
+    }
+  };
+
+  const submitPassword = async () => {
     if (newPassword.length < 8) {
       toast('error', '新密码至少需要 8 位');
       return;
@@ -35,53 +71,88 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
       toast('error', '两次输入的新密码不一致');
       return;
     }
-    setLoading(true);
+    setPwdLoading(true);
     try {
       await api.post('/auth/change-password', {
         old_password: oldPassword,
         new_password: newPassword,
       });
       toast('success', '密码修改成功');
-      onClose();
+      setOldPassword('');
+      setNewPassword('');
+      setConfirm('');
     } catch (e) {
       toast('error', errorMessage(e));
     } finally {
-      setLoading(false);
+      setPwdLoading(false);
     }
   };
 
   return (
-    <Modal title="修改密码" onClose={onClose}>
-      <div className="flex flex-col gap-4">
-        <Field label="当前密码" required>
-          <Input
-            type="password"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-            placeholder="请输入当前密码"
-          />
-        </Field>
-        <Field label="新密码" required hint="至少 8 位">
-          <Input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="请输入新密码"
-          />
-        </Field>
-        <Field label="确认新密码" required>
-          <Input
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            placeholder="再次输入新密码"
-          />
-        </Field>
-        <div className="flex justify-end gap-3">
-          <Button onClick={onClose}>取消</Button>
-          <Button variant="primary" loading={loading} onClick={submit}>
-            保存
-          </Button>
+    <Modal title="账号设置" onClose={onClose}>
+      <div className="flex flex-col gap-6">
+        <section>
+          <div className="mb-3 font-mono text-[10px] tracking-[0.24em] text-faint">修改用户名</div>
+          <div className="flex flex-col gap-4">
+            <Field label="新用户名" required>
+              <Input
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="请输入新用户名"
+              />
+            </Field>
+            <Field label="当前密码" required hint="确认身份，需要输入当前密码">
+              <Input
+                type="password"
+                value={usernamePwd}
+                onChange={(e) => setUsernamePwd(e.target.value)}
+                placeholder="请输入当前密码"
+              />
+            </Field>
+            <div className="flex justify-end">
+              <Button variant="primary" loading={usernameLoading} onClick={submitUsername}>
+                保存用户名
+              </Button>
+            </div>
+          </div>
+        </section>
+        <div className="border-t border-hair" />
+        <section>
+          <div className="mb-3 font-mono text-[10px] tracking-[0.24em] text-faint">修改密码</div>
+          <div className="flex flex-col gap-4">
+            <Field label="当前密码" required>
+              <Input
+                type="password"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                placeholder="请输入当前密码"
+              />
+            </Field>
+            <Field label="新密码" required hint="至少 8 位">
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="请输入新密码"
+              />
+            </Field>
+            <Field label="确认新密码" required>
+              <Input
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="再次输入新密码"
+              />
+            </Field>
+            <div className="flex justify-end">
+              <Button variant="primary" loading={pwdLoading} onClick={submitPassword}>
+                保存密码
+              </Button>
+            </div>
+          </div>
+        </section>
+        <div className="flex justify-end">
+          <Button onClick={onClose}>关闭</Button>
         </div>
       </div>
     </Modal>
@@ -92,7 +163,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showPwd, setShowPwd] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -174,11 +245,11 @@ export default function Layout() {
                 <button
                   onClick={() => {
                     setMenuOpen(false);
-                    setShowPwd(true);
+                    setShowAccount(true);
                   }}
                   className="block w-full px-4 py-2.5 text-left text-[13px] text-mute transition-colors hover:bg-[rgba(150,160,190,.08)] hover:text-ink"
                 >
-                  修改密码
+                  账号设置
                 </button>
                 <button
                   onClick={logout}
@@ -197,7 +268,13 @@ export default function Layout() {
         </main>
       </div>
 
-      {showPwd && <ChangePasswordModal onClose={() => setShowPwd(false)} />}
+      {showAccount && (
+        <AccountSettingsModal
+          currentUsername={username}
+          onClose={() => setShowAccount(false)}
+          onUsernameChanged={setUsername}
+        />
+      )}
     </div>
   );
 }

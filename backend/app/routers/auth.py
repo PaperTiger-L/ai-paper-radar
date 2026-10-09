@@ -33,6 +33,24 @@ def me(username: str = Depends(get_current_user)):
     return {"username": username}
 
 
+@router.post("/change-username", response_model=schemas.TokenOut)
+def change_username(
+    body: schemas.ChangeUsernameIn,
+    username: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """修改管理员用户名：需校验当前密码。成功后签发新 token（sub 为新用户名）。"""
+    stored_hash = utils.get_setting(db, security.ADMIN_HASH_KEY)
+    if not stored_hash or not security.verify_password(body.current_password, stored_hash):
+        utils.log_event(db, "auth", "WARNING", f"修改用户名失败：密码不正确（{username}）")
+        raise HTTPException(status_code=400, detail="当前密码不正确")
+    new_username = body.new_username.strip()
+    utils.set_setting(db, security.ADMIN_USERNAME_KEY, new_username)
+    utils.log_event(db, "auth", "INFO", f"管理员用户名由 {username} 修改为 {new_username}")
+    token, expires_in = security.create_token(db, new_username)
+    return {"token": token, "username": new_username, "expires_in": expires_in}
+
+
 @router.post("/change-password", response_model=schemas.OkOut)
 def change_password(
     body: schemas.ChangePasswordIn,
