@@ -160,6 +160,7 @@ class LlmConfigOut(BaseModel):
     base_url: str = ""
     model: str = ""
     has_api_key: bool = False
+    api_key_preview: str = ""  # 脱敏展示，如 sk-ab***9f2k
     updated_at: str | None = None
 
 

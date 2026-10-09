@@ -99,7 +99,12 @@ def chat(db, messages: list[dict], task: str, json_mode: bool = True, timeout: i
         content = data["choices"][0]["message"]["content"]
     except LlmNotConfigured:
         raise
-    except Exception as e:  # 网络错误 / HTTP 错误 / 解析错误：记录真实原因后上抛
+    except httpx.HTTPStatusError as e:
+        detail = _http_error_detail(e, url)
+        utils.log_event(db, "llm", "ERROR",
+                        f"LLM 调用失败 task={task} model={cfg['model']} {detail}")
+        raise LlmError(detail) from e
+    except Exception as e:  # 网络错误 / 解析错误：记录真实原因后上抛
         utils.log_event(db, "llm", "ERROR",
                         f"LLM 调用失败 task={task} model={cfg['model']} 错误={type(e).__name__}: {e}")
         raise LlmError(f"{type(e).__name__}: {e}") from e
@@ -108,6 +113,28 @@ def chat(db, messages: list[dict], task: str, json_mode: bool = True, timeout: i
         raise LlmError("模型返回空内容")
     utils.log_event(db, "llm", "INFO", f"LLM 调用成功 task={task} model={cfg['model']}")
     return content
+
+
+def mask_api_key(key: str) -> str:
+    """API Key 脱敏展示：sk-ab***9f2k（前3+***+后4）；短 key 显示前2+***。"""
+    k = (key or "").strip()
+    if not k:
+        return ""
+    if len(k) <= 8:
+        return k[:2] + "***"
+    return k[:3] + "***" + k[-4:]
+
+
+def _http_error_detail(e: httpx.HTTPStatusError, url: str) -> str:
+    """把服务商的错误响应体拼进错误信息，方便定位（如模型不存在、Key 无效）。"""
+    try:
+        body = (e.response.text or "").strip()[:300]
+    except Exception:
+        body = ""
+    detail = f"HTTP {e.response.status_code} {url}"
+    if body:
+        detail += f" 返回：{body}"
+    return detail
 
 
 def ping(db, timeout: int = 60) -> str:
@@ -134,6 +161,8 @@ def list_models(db, base_url: str | None = None, api_key: str | None = None,
             resp = client.get(f"{base}/models")
         resp.raise_for_status()
         data = resp.json().get("data", [])
+    except httpx.HTTPStatusError as e:
+        raise LlmError(_http_error_detail(e, f"{base}/models")) from e
     except Exception as e:
         raise LlmError(f"{type(e).__name__}: {e}") from e
     ids = [d.get("id") for d in data

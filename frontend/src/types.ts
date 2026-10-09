@@ -72,6 +72,7 @@ export interface LlmConfig {
   base_url: string;
   model: string;
   has_api_key: boolean;
+  api_key_preview: string;
   updated_at: string | null;
 }
 

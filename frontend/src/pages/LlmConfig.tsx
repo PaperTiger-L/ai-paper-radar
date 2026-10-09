@@ -28,6 +28,7 @@ export default function LlmConfig() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string; latency_ms?: number } | null>(null);
   const [hasKey, setHasKey] = useState(false);
+  const [keyPreview, setKeyPreview] = useState('');
 
   const [provider, setProvider] = useState('openai');
   const [baseUrl, setBaseUrl] = useState('');
@@ -57,6 +58,7 @@ export default function LlmConfig() {
         setBaseUrl(c.base_url || '');
         setModel(c.model || '');
         setHasKey(!!c.has_api_key);
+        setKeyPreview(c.api_key_preview || '');
       })
       .catch((e) => toast('error', errorMessage(e)))
       .finally(() => setLoading(false));
@@ -88,6 +90,7 @@ export default function LlmConfig() {
       if (apiKey.trim()) payload.api_key = apiKey.trim();
       const c = await api.put<LlmConfig>('/config/llm', payload);
       setHasKey(!!c.has_api_key);
+      setKeyPreview(c.api_key_preview || '');
       setApiKey('');
       setTestResult(null);
       toast('success', 'LLM 配置已保存');
@@ -172,13 +175,17 @@ export default function LlmConfig() {
           </Field>
           <Field
             label="API Key"
-            hint={hasKey ? '已配置（显示掩码）。如需更换请直接输入新 Key；留空则保持原 Key 不变。' : '仅保存在服务器本地，不会出现在日志中'}
+            hint={
+              hasKey
+                ? `已配置（${keyPreview}）。如需更换请直接输入新 Key；留空则保持原 Key 不变。`
+                : '仅保存在服务器本地，不会出现在日志中'
+            }
           >
             <Input
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder={hasKey ? '••••••••（已配置，留空不修改）' : 'sk-…'}
+              placeholder={hasKey ? `${keyPreview}（已配置，留空不修改）` : 'sk-…'}
             />
           </Field>
           <Field

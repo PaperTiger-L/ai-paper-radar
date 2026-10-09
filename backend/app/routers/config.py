@@ -27,17 +27,22 @@ def get_llm_config(
     db: Session = Depends(get_db),
     _user: str = Depends(get_current_user),
 ):
+    return _llm_config_out(db)
+
+
+def _llm_config_out(db: Session) -> dict:
     cfg = llm_service.get_llm_config(db)
     return {
         "provider": cfg["provider"],
         "base_url": cfg["base_url"],
         "model": cfg["model"],
         "has_api_key": bool(cfg["api_key"]),
+        "api_key_preview": llm_service.mask_api_key(cfg["api_key"]),
         "updated_at": cfg["updated_at"],
     }
 
 
-@router.put("/llm", response_model=schemas.OkOut)
+@router.put("/llm", response_model=schemas.LlmConfigOut)
 def update_llm_config(
     body: schemas.LlmConfigIn,
     db: Session = Depends(get_db),
@@ -51,7 +56,7 @@ def update_llm_config(
     utils.set_setting(db, llm_service.K_UPDATED_AT, utils.now().isoformat(timespec="seconds"))
     utils.log_event(db, "system", "INFO",
                     f"LLM 配置已更新 provider={body.provider} model={body.model}")
-    return {"ok": True}
+    return _llm_config_out(db)
 
 
 @router.post("/llm/models", response_model=schemas.LlmModelsOut)
