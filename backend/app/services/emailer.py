@@ -116,7 +116,7 @@ def send_test_email(db, to_email: str) -> None:
         f'<div style="max-width:640px;margin:0 auto;padding:24px 12px;'
         f'font-family:{FONT};color:{INK};">'
         f'<table width="100%" cellpadding="0" cellspacing="0" '
-        f'style="background:{TEAL};border-radius:12px;margin-bottom:20px;">'
+        f'style="background:{TEAL};border-radius:18px;margin-bottom:20px;">'
         f'<tr><td style="padding:28px 28px 24px 28px;">'
         f'<div style="font-family:{MONO};font-size:11px;letter-spacing:3px;'
         f'color:#a8ddd8;margin-bottom:10px;">AI PAPER RADAR · TEST</div>'
@@ -126,7 +126,7 @@ def send_test_email(db, to_email: str) -> None:
         f"SMTP 连接正常</div>"
         f"</td></tr></table>"
         f'<table width="100%" cellpadding="0" cellspacing="0" '
-        f'style="background:{CARD};border:1px solid {LINE};border-radius:12px;'
+        f'style="background:{CARD};border:1px solid {LINE};border-radius:18px;'
         f'margin-bottom:20px;"><tr><td style="padding:20px 22px;">'
         f'<div style="font-size:13px;color:#3d4f55;line-height:1.8;">'
         f"如果你收到了这封邮件，说明 SMTP 配置正确，论文周报可以正常发送。</div>"
@@ -219,38 +219,42 @@ def build_digest_html(subscriber_name: str, week_start, week_end,
         f'</td></tr></table>'
     )
 
-    # -- 论文卡片 --
+    # -- 论文卡片（对齐"双目深度估计论文速览"报告：顶部标签 pills + 大圆角卡片 + 胶囊按钮）--
+    def tag(text: str, bg: str, color: str) -> str:
+        return (
+            f'<span style="display:inline-block;background:{bg};color:{color};'
+            f'border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;'
+            f'line-height:1.6;margin:0 6px 8px 0;">{_esc(text)}</span>'
+        )
+
     papers_html = eyebrow(f"本周推荐论文 · {len(items)} 篇")
     if items:
         for i, p in enumerate(items, 1):
-            venue = _esc(p.get("venue") or "未知来源")
-            badge = ""
+            venue = p.get("venue") or "未知来源"
+            date_str = str(p.get("published_date") or "")
+            tags_html = tag(venue, TEAL_BG, TEAL) + tag(date_str, "#edf2f3", MUTED)
             if p.get("is_preprint"):
-                badge = (
-                    ' <span style="display:inline-block;background:#fae6dc;'
-                    'color:#c84f22;border-radius:4px;padding:1px 8px;'
-                    'font-size:11px;">预印本</span>'
-                )
+                tags_html += tag("预印本", "#fae6dc", "#c84f22")
             innovations = p.get("innovations") or []
             if innovations:
                 innovations_html = "".join(
                     f"<li style='margin:5px 0;'>{_esc(x)}</li>" for x in innovations)
             else:
                 innovations_html = "<li style='margin:5px 0;color:#999;'>暂无</li>"
-            date_str = _esc(str(p.get("published_date") or ""))
             url = _esc(p.get("url") or "#")
             papers_html += (
                 f'<table width="100%" cellpadding="0" cellspacing="0" '
                 f'style="background:{CARD};border:1px solid {LINE};'
-                f'border-radius:12px;margin:0 0 14px 0;">'
-                f'<tr><td style="padding:20px 22px;">'
-                f'<div style="font-size:16px;font-weight:700;color:{INK};'
+                f'border-radius:18px;margin:0 0 16px 0;">'
+                f'<tr><td style="padding:22px 24px;">'
+                f'<div style="margin-bottom:6px;">{tags_html}</div>'
+                f'<div style="font-size:18px;font-weight:800;color:{INK};'
                 f'line-height:1.5;margin-bottom:4px;">'
                 f"{i}. {_esc(p.get('zh_title') or p.get('title'))}</div>"
                 f'<div style="font-size:13px;color:{MUTED};line-height:1.6;'
                 f'margin-bottom:8px;">{_esc(p.get("title"))}</div>'
-                f'<div style="font-size:12px;color:{FAINT};margin-bottom:14px;">'
-                f"{_format_authors(p.get('authors'))} · {venue}{badge} · {date_str}</div>"
+                f'<div style="font-size:12px;color:{FAINT};margin-bottom:16px;">'
+                f"{_format_authors(p.get('authors'))}</div>"
                 f'{label("摘要")}'
                 f'{para(p.get("zh_abstract") or "暂无")}'
                 f'{label("核心创新点")}'
@@ -258,15 +262,16 @@ def build_digest_html(subscriber_name: str, week_start, week_end,
                 f'color:#3d4f55;line-height:1.7;">{innovations_html}</ul>'
                 f'{label("推荐理由")}'
                 f'{para(p.get("recommend_reason") or "暂无")}'
-                f'<div style="margin-top:4px;">'
-                f'<a href="{url}" style="color:{TEAL};font-size:13px;'
-                f'text-decoration:none;font-weight:600;">阅读原文 →</a></div>'
+                f'<div style="margin-top:10px;">'
+                f'<a href="{url}" style="display:inline-block;background:{TEAL};'
+                f'color:#ffffff;font-size:13px;font-weight:600;text-decoration:none;'
+                f'border-radius:20px;padding:8px 22px;">阅读原文 →</a></div>'
                 f'</td></tr></table>'
             )
     else:
         papers_html += (
             f'<table width="100%" cellpadding="0" cellspacing="0" '
-            f'style="background:{CARD};border:1px solid {LINE};border-radius:12px;'
+            f'style="background:{CARD};border:1px solid {LINE};border-radius:18px;'
             f'margin-bottom:20px;"><tr>'
             f'<td style="padding:28px 22px;text-align:center;font-size:13px;'
             f'color:{FAINT};">本周没有检索到与您研究方向高度相关的论文，'
@@ -276,7 +281,7 @@ def build_digest_html(subscriber_name: str, week_start, week_end,
     # -- 本周研究启发 --
     inspiration = (
         f'<table width="100%" cellpadding="0" cellspacing="0" '
-        f'style="background:{CARD};border:1px solid {LINE};border-radius:12px;'
+        f'style="background:{CARD};border:1px solid {LINE};border-radius:18px;'
         f'margin-bottom:20px;"><tr><td style="padding:20px 22px;">'
         f'{eyebrow("本周研究启发")}'
         f'{para(sections.get("inspiration_zh") or "暂无")}'
