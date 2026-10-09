@@ -85,6 +85,7 @@ export interface SmtpConfig {
   use_tls: boolean;
   use_ssl: boolean;
   has_password: boolean;
+  password_preview: string;
 }
 
 export interface ScheduleConfig {

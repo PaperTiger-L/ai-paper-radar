@@ -107,6 +107,10 @@ def get_smtp_config(
     db: Session = Depends(get_db),
     _user: str = Depends(get_current_user),
 ):
+    return _smtp_config_out(db)
+
+
+def _smtp_config_out(db: Session) -> dict:
     cfg = emailer.get_smtp_config(db)
     return {
         "host": cfg["host"],
@@ -117,10 +121,11 @@ def get_smtp_config(
         "use_tls": cfg["use_tls"],
         "use_ssl": cfg["use_ssl"],
         "has_password": bool(cfg["password"]),
+        "password_preview": utils.mask_secret(cfg["password"]),
     }
 
 
-@router.put("/smtp", response_model=schemas.OkOut)
+@router.put("/smtp", response_model=schemas.SmtpConfigOut)
 def update_smtp_config(
     body: schemas.SmtpConfigIn,
     db: Session = Depends(get_db),
@@ -137,7 +142,7 @@ def update_smtp_config(
     utils.set_setting(db, emailer.K_USE_SSL, "true" if body.use_ssl else "false")
     utils.log_event(db, "system", "INFO",
                     f"SMTP 配置已更新 host={body.host} port={body.port} from={body.from_email}")
-    return {"ok": True}
+    return _smtp_config_out(db)
 
 
 @router.post("/smtp/test", response_model=schemas.SmtpTestOut)

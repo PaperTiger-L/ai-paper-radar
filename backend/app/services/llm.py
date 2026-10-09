@@ -116,13 +116,8 @@ def chat(db, messages: list[dict], task: str, json_mode: bool = True, timeout: i
 
 
 def mask_api_key(key: str) -> str:
-    """API Key 脱敏展示：sk-ab***9f2k（前3+***+后4）；短 key 显示前2+***。"""
-    k = (key or "").strip()
-    if not k:
-        return ""
-    if len(k) <= 8:
-        return k[:2] + "***"
-    return k[:3] + "***" + k[-4:]
+    """API Key 脱敏展示（委托 utils.mask_secret，保持调用方兼容）。"""
+    return utils.mask_secret(key)
 
 
 def _http_error_detail(e: httpx.HTTPStatusError, url: str) -> str:

@@ -195,6 +195,7 @@ class SmtpConfigOut(BaseModel):
     use_tls: bool = True
     use_ssl: bool = False
     has_password: bool = False
+    password_preview: str = ""  # 脱敏展示，如 ab***9f2k
 
 
 class SmtpConfigIn(BaseModel):

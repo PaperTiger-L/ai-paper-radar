@@ -19,6 +19,7 @@ export default function SmtpConfigPage() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
+  const [passwordPreview, setPasswordPreview] = useState('');
 
   const [host, setHost] = useState('');
   const [port, setPort] = useState(465);
@@ -42,6 +43,7 @@ export default function SmtpConfigPage() {
         setUseTls(!!c.use_tls);
         setUseSsl(!!c.use_ssl);
         setHasPassword(!!c.has_password);
+        setPasswordPreview(c.password_preview || '');
       })
       .catch((e) => toast('error', errorMessage(e)))
       .finally(() => setLoading(false));
@@ -70,6 +72,7 @@ export default function SmtpConfigPage() {
       if (password.trim()) payload.password = password.trim();
       const c = await api.put<SmtpConfig>('/config/smtp', payload);
       setHasPassword(!!c.has_password);
+      setPasswordPreview(c.password_preview || '');
       setPassword('');
       toast('success', 'SMTP 配置已保存');
     } catch (e) {
@@ -127,13 +130,17 @@ export default function SmtpConfigPage() {
           <Field
             label="密码 / 授权码"
             required={!hasPassword}
-            hint={hasPassword ? '已配置。更换请直接输入新密码；留空不修改。' : 'QQ/163 等邮箱请使用授权码'}
+            hint={
+              hasPassword
+                ? `已配置（${passwordPreview}）。更换请直接输入新密码；留空不修改。`
+                : 'QQ/163 等邮箱请使用授权码'
+            }
           >
             <Input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={hasPassword ? '••••••••（已配置，留空不修改）' : '请输入密码或授权码'}
+              placeholder={hasPassword ? `${passwordPreview}（已配置，留空不修改）` : '请输入密码或授权码'}
             />
           </Field>
           <Field label="发件人邮箱" required>
