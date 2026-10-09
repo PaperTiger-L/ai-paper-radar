@@ -108,6 +108,14 @@ def _worker(job_id: str, subscriber_ids: list[int] | None, send_email: bool, for
         db.close()
 
 
+def _has_searchable_profile(profile: dict) -> bool:
+    """画像是否有可用于检索的信息（领域/研究问题/方法/关键词任一非空）。"""
+    for key in ("field", "research_problem", "methods"):
+        if (profile.get(key) or "").strip():
+            return True
+    return any((k or "").strip() for k in (profile.get("keywords") or []))
+
+
 def _profile_of(sub: Subscriber) -> dict:
     return {
         "name": sub.name,
@@ -136,6 +144,12 @@ def _process_subscriber(db, job_id: str, sub: Subscriber, send_email: bool, forc
     )
     if existing and not force:
         utils.log_event(db, "pipeline", "INFO", f"{tag} 本周已有成功的周报（run={existing.id}），跳过")
+        return
+
+    # 1.5 用户画像为空则跳过：避免用宽泛词硬搜一轮后发"信息不足"的空邮件
+    if not _has_searchable_profile(_profile_of(sub)):
+        utils.log_event(db, "pipeline", "WARNING",
+                        f"{tag} 用户画像为空（研究领域/研究问题/方法/关键词均未填写），本周跳过")
         return
 
     run = DigestRun(subscriber_id=sub.id, week_start=ws, status="running",

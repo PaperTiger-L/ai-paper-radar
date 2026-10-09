@@ -118,14 +118,17 @@ def ping(db, timeout: int = 60) -> str:
 
 
 def fallback_queries(profile: dict) -> list[str]:
-    """降级检索词：用 keywords / field / methods 拼接生成查询（LLM 不可用时使用）。"""
+    """降级检索词：用 keywords / field / methods 拼接生成查询（LLM 不可用时使用）。
+
+    画像完全为空时返回 []，由调用方决定跳过该用户（不再用宽泛词硬搜）。
+    """
     keywords = [k for k in (profile.get("keywords") or []) if k]
     fallback = keywords[:4]
     if profile.get("field"):
         fallback.append(profile["field"])
     if profile.get("methods"):
         fallback.append(profile["methods"])
-    return [q.strip() for q in fallback if q and q.strip()][:6] or ["machine learning"]
+    return [q.strip() for q in fallback if q and q.strip()][:6]
 
 
 def gen_queries(db, profile: dict) -> list[str]:
