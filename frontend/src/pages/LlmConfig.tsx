@@ -18,6 +18,7 @@ const PROVIDERS = [
   { value: 'deepseek', label: 'DeepSeek', base: 'https://api.deepseek.com/v1' },
   { value: 'qwen', label: 'Qwen（通义千问）', base: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
   { value: 'gemini', label: 'Gemini', base: 'https://generativelanguage.googleapis.com/v1beta/openai' },
+  { value: 'openrouter', label: 'OpenRouter（免费模型）', base: 'https://openrouter.ai/api/v1' },
   { value: 'custom', label: '自定义（OpenAI 兼容）', base: '' },
 ];
 
@@ -68,6 +69,8 @@ export default function LlmConfig() {
     setProvider(v);
     const p = PROVIDERS.find((x) => x.value === v);
     if (p && v !== 'custom') setBaseUrl(p.base);
+    // OpenRouter 默认预填免费模型 ling-3.1-flash（Tiger 选定的日常翻译/筛选模型）
+    if (v === 'openrouter' && !model.trim()) setModel('inclusionai/ling-3.1-flash');
   };
 
   const save = async () => {
@@ -166,6 +169,11 @@ export default function LlmConfig() {
               ))}
             </Select>
           </Field>
+          {provider === 'openrouter' && (
+            <div className="rounded-[10px] border border-hair bg-panel-2 px-3 py-2 text-[12px] leading-relaxed text-mute">
+              OpenRouter 免费模型每日有请求限额（免费版约 50 次/天）。一次周报流水线会消耗多次调用，请留意剩余额度；模型列表可用右侧「获取模型列表」拉取全部免费模型。
+            </div>
+          )}
           <Field label="API Base URL" hint="OpenAI 兼容接口地址，如 https://api.openai.com/v1">
             <Input
               value={baseUrl}
@@ -203,7 +211,7 @@ export default function LlmConfig() {
                   onFocus={() => {
                     if (models.length) setModelsOpen(true);
                   }}
-                  placeholder="deepseek-chat"
+                  placeholder={provider === 'openrouter' ? 'inclusionai/ling-3.1-flash' : 'deepseek-chat'}
                 />
                 <Button
                   loading={fetchingModels}
