@@ -144,8 +144,9 @@ def update_search_config(
     db: Session = Depends(get_db),
     _user: str = Depends(get_current_user),
 ):
-    if body.api_key:  # 空=保持原值
-        utils.set_setting(db, search_service.K_API_KEY, body.api_key.strip())
+    key = (body.api_key or "").strip()
+    if key:  # 空=保持原值
+        utils.set_setting(db, search_service.K_API_KEY, key)
         utils.set_setting(db, search_service.K_UPDATED_AT, utils.now().isoformat(timespec="seconds"))
         utils.log_event(db, "system", "INFO", "AnySearch Key 已更新（网页配置）")
     return _search_config_out(db)

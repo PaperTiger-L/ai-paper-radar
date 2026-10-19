@@ -13,12 +13,6 @@ Key 来源（优先级从高到低）：
     2. 环境变量 ANYSEARCH_API_KEY
     两处都未配置时检索直接报错（不降级匿名访问，避免不知不觉
     烧掉匿名每日免费额度）。
-    - academic.search    跨学科论文检索（期刊 + 预印本，Semantic Scholar 类）
-    - academic.preprint  预印本检索（CS/物理/数学/生物/经济）
-    两条通道均用默认相关性排序（实测按时间倒序会严重损失相关性），
-    时效由代码侧的 _within_window 粗过滤保证。
-    POST https://api.anysearch.com/v1/search
-    鉴权：Authorization: Bearer <key>
 
 每个查询词分别走两个通道检索后合并，按 external_id + 归一化标题去重。
 单通道超时/异常记日志后继续，不中断整体流程。
@@ -32,8 +26,6 @@ Key 来源（优先级从高到低）：
       保留 snippet 年份 >= since 年份、且 arXiv 编号年月不早于 since 上一个月的
       结果（多留一个月是为覆盖周窗口跨月边界的情况）。是近似值，LLM 打分阶段
       会再做一轮相关性筛选。
-    - 未配置 ANYSEARCH_API_KEY 时检索直接报错（不降级匿名访问，避免不知不觉
-      烧掉匿名每日免费额度）。
 """
 from __future__ import annotations
 
@@ -253,9 +245,11 @@ def _to_candidate(result: dict, tag: str, since: dt.date) -> PaperCandidate | No
 
     ym = _parse_arxiv_ym(url)
     published_date = dt.date(ym[0], ym[1], 1) if ym else (dt.date(year, 1, 1) if year else None)
-    is_preprint = bool(ym) or (venue or "").lower().startswith("arxiv")
-    if is_preprint:
-        venue = "arXiv" if ym else (venue or "arXiv")
+    # 预印本判定：arXiv 链接，或 venue/URL 命中预印本服务器（与 venues._preprint_server 对齐）
+    blob = f"{venue or ''} {url or ''}".lower()
+    is_preprint = bool(ym) or any(h in blob for h in ("arxiv", "biorxiv", "medrxiv", "research square", "ssrn"))
+    if ym:
+        venue = "arXiv"
 
     abstract = (content.strip() or snippet.strip())
     if len(abstract) > 3000:  # 控制下游 LLM 筛选的 token 消耗
