@@ -1,8 +1,8 @@
-"""系统配置：LLM / 检索 / SMTP / 定时任务的查看、保存与连通性测试。
+"""系统配置：LLM / SMTP / 定时任务的查看、保存与连通性测试。
 
 注意：GET 接口绝不返回 API Key / SMTP 密码明文，只返回 has_api_key / has_password。
 PUT 时 api_key / password 为空字符串表示保持原值。
-测试接口（llm/test、search/test、smtp/test）做真实请求，失败返回真实错误信息，绝不伪造成功。
+测试接口（llm/test、smtp/test）做真实请求，失败返回真实错误信息，绝不伪造成功。
 """
 import time
 
@@ -14,7 +14,6 @@ from ..config import settings
 from ..deps import get_current_user, get_db
 from ..services import emailer, llm as llm_service
 from ..services import scheduler as scheduler_service
-from ..services import search as search_service
 from ..services import venues as venues_service
 
 router = APIRouter(prefix="/api/config", tags=["config"])
@@ -113,73 +112,6 @@ def test_llm(
         ms = int((time.perf_counter() - t0) * 1000)
         msg = f"{type(e).__name__}: {e}"
         utils.log_event(db, "llm", "ERROR", f"LLM 连接测试失败：{msg}")
-        return {"ok": False, "message": msg, "latency_ms": ms}
-
-
-# ---------------------------------------------------------------------------
-# 检索（AnySearch）
-# ---------------------------------------------------------------------------
-
-@router.get("/search", response_model=schemas.SearchConfigOut)
-def get_search_config(
-    db: Session = Depends(get_db),
-    _user: str = Depends(get_current_user),
-):
-    return _search_config_out(db)
-
-
-def _search_config_out(db: Session) -> dict:
-    cfg = search_service.get_search_config(db)
-    return {
-        "has_api_key": bool(cfg["api_key"]),
-        "api_key_preview": utils.mask_secret(cfg["api_key"]),
-        "source": cfg["source"],
-        "updated_at": cfg["updated_at"],
-    }
-
-
-@router.put("/search", response_model=schemas.SearchConfigOut)
-def update_search_config(
-    body: schemas.SearchConfigIn,
-    db: Session = Depends(get_db),
-    _user: str = Depends(get_current_user),
-):
-    key = (body.api_key or "").strip()
-    if key:  # 空=保持原值
-        utils.set_setting(db, search_service.K_API_KEY, key)
-        utils.set_setting(db, search_service.K_UPDATED_AT, utils.now().isoformat(timespec="seconds"))
-        utils.log_event(db, "system", "INFO", "AnySearch Key 已更新（网页配置）")
-    return _search_config_out(db)
-
-
-@router.delete("/search/key", response_model=schemas.SearchConfigOut)
-def clear_search_key(
-    db: Session = Depends(get_db),
-    _user: str = Depends(get_current_user),
-):
-    """清除网页配置的 Key，之后回退到环境变量 ANYSEARCH_API_KEY。"""
-    utils.set_setting(db, search_service.K_API_KEY, "")
-    utils.set_setting(db, search_service.K_UPDATED_AT, utils.now().isoformat(timespec="seconds"))
-    utils.log_event(db, "system", "INFO", "AnySearch Key 已清除（网页配置），回退到环境变量")
-    return _search_config_out(db)
-
-
-@router.post("/search/test", response_model=schemas.SearchTestOut)
-def test_search(
-    db: Session = Depends(get_db),
-    _user: str = Depends(get_current_user),
-):
-    """用 academic.search 真实检索 1 条，返回是否成功与耗时。"""
-    t0 = time.perf_counter()
-    try:
-        title = search_service.ping(db)
-        ms = int((time.perf_counter() - t0) * 1000)
-        utils.log_event(db, "search", "INFO", f"AnySearch 连接测试成功 耗时 {ms}ms")
-        return {"ok": True, "message": f"连接成功，检索到：{title[:120]}", "latency_ms": ms}
-    except Exception as e:  # 真实错误直接返回，不伪造成功
-        ms = int((time.perf_counter() - t0) * 1000)
-        msg = f"{type(e).__name__}: {e}"
-        utils.log_event(db, "search", "ERROR", f"AnySearch 连接测试失败：{msg}")
         return {"ok": False, "message": msg, "latency_ms": ms}
 
 

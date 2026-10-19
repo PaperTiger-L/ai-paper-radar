@@ -14,7 +14,6 @@ const NAV = [
   { to: '/subscribers', label: '用户管理' },
   { to: '/papers', label: '论文管理' },
   { to: '/llm', label: 'LLM 配置' },
-  { to: '/search', label: '检索配置' },
   { to: '/smtp', label: '邮箱配置' },
   { to: '/schedule', label: '定时任务' },
   { to: '/logs', label: '日志管理' },

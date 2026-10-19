@@ -179,23 +179,6 @@ class LlmTestOut(BaseModel):
     latency_ms: int = 0
 
 
-class SearchConfigOut(BaseModel):
-    has_api_key: bool = False
-    api_key_preview: str = ""  # 脱敏展示，如 as_sk_4e***ae4d
-    source: str = ""  # Key 来源：ui=网页配置 / env=环境变量 / 空=未配置
-    updated_at: str | None = None
-
-
-class SearchConfigIn(BaseModel):
-    api_key: str = ""  # 空字符串=保持原值
-
-
-class SearchTestOut(BaseModel):
-    ok: bool
-    message: str
-    latency_ms: int = 0
-
-
 class LlmModelsIn(BaseModel):
     base_url: str = ""  # 空=用已保存的
     api_key: str = ""  # 空=用已保存的

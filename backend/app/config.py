@@ -8,8 +8,6 @@
                     设置后优先于 Setting 表的值，且会使旧 token 失效）
     TIMEZONE        应用时区（默认 Asia/Shanghai）
     DOCS_ENABLED    是否暴露 /docs、/redoc 与 /openapi.json（默认 false，生产环境建议关闭）
-    ANYSEARCH_API_KEY 论文检索用的 AnySearch API Key（兜底：后台「检索配置」
-                    页面保存的 Key 优先，未在网页配置时才用此环境变量）
 """
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,7 +19,6 @@ class AppSettings(BaseSettings):
     jwt_secret: str | None = None
     timezone: str = "Asia/Shanghai"
     docs_enabled: bool = False  # 设为 true 则暴露 /docs、/redoc 与 /openapi.json
-    anysearch_api_key: str | None = None  # 论文检索用的 AnySearch Key
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
