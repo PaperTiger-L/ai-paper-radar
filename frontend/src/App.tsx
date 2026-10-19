@@ -3,6 +3,7 @@ import Layout from './Layout';
 import Dashboard from './pages/Dashboard';
 import Logs from './pages/Logs';
 import LlmConfig from './pages/LlmConfig';
+import SearchConfigPage from './pages/SearchConfig';
 import Papers from './pages/Papers';
 import SchedulePage from './pages/Schedule';
 import SmtpConfigPage from './pages/SmtpConfig';
@@ -30,6 +31,7 @@ export default function App() {
               <Route path="subscribers" element={<Subscribers />} />
               <Route path="papers" element={<Papers />} />
               <Route path="llm" element={<LlmConfig />} />
+              <Route path="search" element={<SearchConfigPage />} />
               <Route path="smtp" element={<SmtpConfigPage />} />
               <Route path="schedule" element={<SchedulePage />} />
               <Route path="logs" element={<Logs />} />

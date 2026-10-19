@@ -1,6 +1,18 @@
 """论文检索服务：AnySearch 统一检索（学术双通道）。
 
-数据源（需要 API Key，环境变量 ANYSEARCH_API_KEY）：
+数据源（需要 API Key）：
+    - academic.search    跨学科论文检索（期刊 + 预印本，Semantic Scholar 类）
+    - academic.preprint  预印本检索（CS/物理/数学/生物/经济）
+    两条通道均用默认相关性排序（实测按时间倒序会严重损失相关性），
+    时效由代码侧的 _within_window 粗过滤保证。
+    POST https://api.anysearch.com/v1/search
+    鉴权：Authorization: Bearer <key>
+
+Key 来源（优先级从高到低）：
+    1. 后台「检索配置」页面保存的 Key（Setting 表 search.anysearch_api_key）
+    2. 环境变量 ANYSEARCH_API_KEY
+    两处都未配置时检索直接报错（不降级匿名访问，避免不知不觉
+    烧掉匿名每日免费额度）。
     - academic.search    跨学科论文检索（期刊 + 预印本，Semantic Scholar 类）
     - academic.preprint  预印本检索（CS/物理/数学/生物/经济）
     两条通道均用默认相关性排序（实测按时间倒序会严重损失相关性），
@@ -39,6 +51,10 @@ ANYSEARCH_URL = "https://api.anysearch.com/v1/search"
 PER_PAGE = 10  # AnySearch 上限 1-10
 TIMEOUT = 30
 
+# Setting 表中的键（后台「检索配置」页面读写）
+K_API_KEY = "search.anysearch_api_key"
+K_UPDATED_AT = "search.updated_at"
+
 # 双通道：跨学科检索（替代 OpenAlex） + 预印本检索（替代 arXiv）
 # 注意：不传 sort 参数（用默认相关性排序）。实测按发表时间倒序会严重
 # 损失相关性（返回"最新但不相关"的结果）；时效由 _within_window 在代码侧过滤。
@@ -70,11 +86,35 @@ class AnySearchNotConfigured(AnySearchError):
     """未配置 ANYSEARCH_API_KEY。"""
 
 
-def _get_api_key() -> str:
-    key = (settings.anysearch_api_key or "").strip()
+def mask_api_key(key: str) -> str:
+    """API Key 脱敏展示（委托 utils.mask_secret）。"""
+    return utils.mask_secret(key)
+
+
+def get_search_config(db) -> dict:
+    """读取检索配置：Key 来源、脱敏预览、更新时间。
+
+    返回 {"api_key": 实际生效的 key（可能为空）, "source": "ui"|"env"|"",
+           "updated_at": ...}。明文 key 只在服务端内部使用，绝不直接返回给前端。
+    """
+    ui_key = (utils.get_setting(db, K_API_KEY, "") or "").strip()
+    if ui_key:
+        return {"api_key": ui_key, "source": "ui",
+                "updated_at": utils.get_setting(db, K_UPDATED_AT)}
+    env_key = (settings.anysearch_api_key or "").strip()
+    if env_key:
+        return {"api_key": env_key, "source": "env", "updated_at": None}
+    return {"api_key": "", "source": "", "updated_at": None}
+
+
+def _get_api_key(db=None) -> str:
+    if db is not None:
+        key = get_search_config(db)["api_key"]
+    else:
+        key = (settings.anysearch_api_key or "").strip()
     if not key:
         raise AnySearchNotConfigured(
-            "未配置 ANYSEARCH_API_KEY：请在 .env 或环境变量中设置 AnySearch 的 API Key"
+            "未配置 AnySearch Key：请在后台「检索配置」页面填写，或设置环境变量 ANYSEARCH_API_KEY"
         )
     return key
 
@@ -165,10 +205,11 @@ def _within_window(url: str | None, year: int | None, since: dt.date) -> bool:
 # AnySearch 单通道检索
 # ---------------------------------------------------------------------------
 
-def _fetch_leg(query: str, tag: str, params: dict, db=None) -> list[dict]:
+def _fetch_leg(query: str, tag: str, params: dict, db=None,
+               max_results: int = PER_PAGE) -> list[dict]:
     """调用 POST /v1/search 单个通道，返回原始 result 列表。失败返回空列表并记日志。"""
-    api_key = _get_api_key()  # 未配置时直接抛错，search_all 捕获后记日志
-    body: dict = {"query": query, "tag": tag, "max_results": PER_PAGE, "language": "en"}
+    api_key = _get_api_key(db)  # 未配置时直接抛错，search_all 捕获后记日志
+    body: dict = {"query": query, "tag": tag, "max_results": max_results, "language": "en"}
     if params:
         body["params"] = params
     try:
@@ -231,6 +272,14 @@ def _to_candidate(result: dict, tag: str, since: dt.date) -> PaperCandidate | No
         source=tag,
         is_preprint=is_preprint,
     )
+
+
+def ping(db) -> str:
+    """连通性测试：用 academic.search 真实检索 1 条，返回首条标题。失败抛异常。"""
+    results = _fetch_leg("machine learning", "academic.search", {}, db, max_results=1)
+    if not results:
+        raise AnySearchError("连接正常，但测试检索返回 0 条结果")
+    return (results[0].get("title") or "").strip() or "(无标题)"
 
 
 def fetch_anysearch(query: str, since: dt.date, until: dt.date, db=None) -> list[PaperCandidate]:
@@ -297,7 +346,7 @@ def search_all(queries: list[str], db=None,
     until = until or utils.today()
     since = since or (until - dt.timedelta(days=6))
     try:
-        _get_api_key()
+        _get_api_key(db)
     except AnySearchNotConfigured as e:
         if db is not None:
             utils.log_event(db, "search", "ERROR", f"检索跳过：{e}")

@@ -78,6 +78,13 @@ export interface LlmConfig {
   updated_at: string | null;
 }
 
+export interface SearchConfig {
+  has_api_key: boolean;
+  api_key_preview: string;
+  source: string; // ui=网页配置 / env=环境变量 / ''=未配置
+  updated_at: string | null;
+}
+
 export interface SmtpConfig {
   host: string;
   port: number;
