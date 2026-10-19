@@ -88,7 +88,7 @@ uvicorn app.main:app --reload          # 访问 http://127.0.0.1:8000/
 # 前端
 cd frontend
 npm install && npm run dev             # 开发调试
-npm run build                          # 产物输出到 dist/，发布时复制到 backend/app/static/admin/
+npm run build                          # 产物输出到 dist/，发布时复制到 backend/static/admin/
 ```
 
 ## 目录结构

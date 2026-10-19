@@ -19,7 +19,7 @@ venv/
 frontend/node_modules/
 frontend/dist/
 # 后端静态目录下的前端构建产物（Docker 构建时自动填入，不提交）
-backend/app/static/admin/
+backend/static/admin/
 
 # 系统
 .DS_Store

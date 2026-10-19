@@ -38,8 +38,10 @@ logger = logging.getLogger("paper_radar")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 APP_DIR = Path(__file__).resolve().parent
-STATIC_DIR = APP_DIR / "static"
-ADMIN_DIR = STATIC_DIR / "admin"
+STATIC_DIR = APP_DIR / "static"  # 登录页等后端自带静态文件（index.html、three.min.js）
+# 管理后台前端构建产物。与 STATIC_DIR 分开放到 backend/ 根下，避免
+# /app/app/static/admin 这种两层 app 的别扭路径（Docker 里就是 /app/static/admin）。
+ADMIN_DIR = APP_DIR.parent / "static" / "admin"
 
 DEFAULT_ADMIN_PASSWORD = "admin12345"
 

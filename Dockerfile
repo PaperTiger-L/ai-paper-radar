@@ -17,8 +17,8 @@ COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./
 # 把前端构建产物放进后端静态目录，由 FastAPI 统一服务
-# （WORKDIR 为 /app，此处实际落到 /app/app/static/admin，与 main.py 的 APP_DIR 一致）
-COPY --from=frontend-build /build/frontend/dist ./app/static/admin
+# （WORKDIR 为 /app，落到 /app/static/admin，与 main.py 的 ADMIN_DIR 一致）
+COPY --from=frontend-build /build/frontend/dist ./static/admin
 VOLUME /app/data
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
