@@ -164,7 +164,7 @@ def clear_search_key(
     return _search_config_out(db)
 
 
-@router.post("/search/test", response_model=schemas.LlmTestOut)
+@router.post("/search/test", response_model=schemas.SearchTestOut)
 def test_search(
     db: Session = Depends(get_db),
     _user: str = Depends(get_current_user),

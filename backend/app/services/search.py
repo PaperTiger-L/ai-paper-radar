@@ -197,10 +197,9 @@ def _within_window(url: str | None, year: int | None, since: dt.date) -> bool:
 # AnySearch 单通道检索
 # ---------------------------------------------------------------------------
 
-def _fetch_leg(query: str, tag: str, params: dict, db=None,
+def _fetch_leg(query: str, tag: str, params: dict, api_key: str, db=None,
                max_results: int = PER_PAGE) -> list[dict]:
     """调用 POST /v1/search 单个通道，返回原始 result 列表。失败返回空列表并记日志。"""
-    api_key = _get_api_key(db)  # 未配置时直接抛错，search_all 捕获后记日志
     body: dict = {"query": query, "tag": tag, "max_results": max_results, "language": "en"}
     if params:
         body["params"] = params
@@ -270,24 +269,22 @@ def _to_candidate(result: dict, tag: str, since: dt.date) -> PaperCandidate | No
 
 def ping(db) -> str:
     """连通性测试：用 academic.search 真实检索 1 条，返回首条标题。失败抛异常。"""
-    results = _fetch_leg("machine learning", "academic.search", {}, db, max_results=1)
+    api_key = _get_api_key(db)
+    results = _fetch_leg("machine learning", "academic.search", {}, api_key, db, max_results=1)
     if not results:
         raise AnySearchError("连接正常，但测试检索返回 0 条结果")
     return (results[0].get("title") or "").strip() or "(无标题)"
 
 
-def fetch_anysearch(query: str, since: dt.date, until: dt.date, db=None) -> list[PaperCandidate]:
+def fetch_anysearch(query: str, since: dt.date, until: dt.date, api_key: str, db=None) -> list[PaperCandidate]:
     """用单个查询词走 academic.search + academic.preprint 双通道检索。
 
-    未配置 Key 时抛 AnySearchNotConfigured（由 search_all 统一记日志）；
     单通道失败记日志后继续另一通道。
     """
     candidates: list[PaperCandidate] = []
     for tag, params in (LEG_SEARCH, LEG_PREPRINT):
         try:
-            results = _fetch_leg(query, tag, params, db)
-        except AnySearchNotConfigured:
-            raise
+            results = _fetch_leg(query, tag, params, api_key, db)
         except AnySearchError as e:
             if db is not None:
                 utils.log_event(db, "search", "ERROR", f"AnySearch 通道失败 tag={tag} query={query}：{e}")
@@ -340,7 +337,7 @@ def search_all(queries: list[str], db=None,
     until = until or utils.today()
     since = since or (until - dt.timedelta(days=6))
     try:
-        _get_api_key(db)
+        api_key = _get_api_key(db)  # Key 只解析一次，传给各通道
     except AnySearchNotConfigured as e:
         if db is not None:
             utils.log_event(db, "search", "ERROR", f"检索跳过：{e}")
@@ -351,12 +348,7 @@ def search_all(queries: list[str], db=None,
         q = (q or "").strip()
         if not q:
             continue
-        try:
-            all_candidates.extend(fetch_anysearch(q, since, until, db))
-        except AnySearchNotConfigured as e:
-            if db is not None:
-                utils.log_event(db, "search", "ERROR", f"检索跳过：{e}")
-            return []
+        all_candidates.extend(fetch_anysearch(q, since, until, api_key, db))
     unique = dedupe(all_candidates)
     if db is not None:
         utils.log_event(

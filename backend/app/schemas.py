@@ -190,6 +190,12 @@ class SearchConfigIn(BaseModel):
     api_key: str = ""  # 空字符串=保持原值
 
 
+class SearchTestOut(BaseModel):
+    ok: bool
+    message: str
+    latency_ms: int = 0
+
+
 class LlmModelsIn(BaseModel):
     base_url: str = ""  # 空=用已保存的
     api_key: str = ""  # 空=用已保存的
