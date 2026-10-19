@@ -1,31 +1,22 @@
 """论文检索服务：AnySearch 统一检索（学术双通道）。
 
-数据源（需要 API Key）：
-    - academic.search    跨学科论文检索（期刊 + 预印本，Semantic Scholar 类）
-    - academic.preprint  预印本检索（CS/物理/数学/生物/经济）
-    两条通道均用默认相关性排序（实测按时间倒序会严重损失相关性），
-    时效由代码侧的 _within_window 粗过滤保证。
-    POST https://api.anysearch.com/v1/search
-    鉴权：Authorization: Bearer <key>
+    academic.search    跨学科论文检索（期刊 + 预印本）
+    academic.preprint  预印本检索（CS/物理/数学/生物/经济）
+    POST https://api.anysearch.com/v1/search，Authorization: Bearer <key>
 
-Key 来源（优先级从高到低）：
-    1. 后台「检索配置」页面保存的 Key（Setting 表 search.anysearch_api_key）
-    2. 环境变量 ANYSEARCH_API_KEY
-    两处都未配置时检索直接报错（不降级匿名访问，避免不知不觉
-    烧掉匿名每日免费额度）。
+两条通道都用默认相关性排序（实测按时间倒序会严重损失相关性），
+时效靠 _within_window 在代码侧粗过滤。
 
-每个查询词分别走两个通道检索后合并，按 external_id + 归一化标题去重。
-单通道超时/异常记日志后继续，不中断整体流程。
+Key 优先级：后台「检索配置」页（Setting 表）> 环境变量 ANYSEARCH_API_KEY；
+两处都未配置时检索直接报错，不降级匿名访问（避免烧掉匿名免费额度）。
 
-与旧实现（OpenAlex + arXiv）的已知差异：
-    - AnySearch 的 REST 结果只有 title/url/snippet/content 四个字段，没有结构化的
-      作者/发表日期。作者、年份、venue 从 snippet 解析（格式如
-      "A, B, et al. (2025) — arXiv (Cornell University) — cited 3 times"），
+已知差异（相对旧的 OpenAlex + arXiv）：
+    - REST 结果只有 title/url/snippet/content 四字段，作者/年份/venue 从
+      snippet 解析（如 "A, B, et al. (2025) — arXiv — cited 3 times"），
       arXiv 链接可从编号解析出年月。
-    - 因此精确到"天"的 7 天过滤做不到，采用"默认相关性排序 + 年/月粗过滤"近似：
-      保留 snippet 年份 >= since 年份、且 arXiv 编号年月不早于 since 上一个月的
-      结果（多留一个月是为覆盖周窗口跨月边界的情况）。是近似值，LLM 打分阶段
-      会再做一轮相关性筛选。
+    - 精确到"天"的 7 天过滤做不到，采用"年/月粗过滤"近似：
+      snippet 年份 >= since 年份，且 arXiv 编号年月不早于 since 上一个月。
+      是近似值，LLM 打分会再筛一轮。
 """
 from __future__ import annotations
 
@@ -71,32 +62,18 @@ class PaperCandidate:
 
 
 class AnySearchError(Exception):
-    """AnySearch 调用失败。"""
-
-
-class AnySearchNotConfigured(AnySearchError):
-    """未配置 ANYSEARCH_API_KEY。"""
-
-
-def mask_api_key(key: str) -> str:
-    """API Key 脱敏展示（委托 utils.mask_secret）。"""
-    return utils.mask_secret(key)
+    """AnySearch 调用失败（含未配置 Key 的情况）。"""
 
 
 def get_search_config(db) -> dict:
-    """读取检索配置：Key 来源、脱敏预览、更新时间。
-
-    返回 {"api_key": 实际生效的 key（可能为空）, "source": "ui"|"env"|"",
-           "updated_at": ...}。明文 key 只在服务端内部使用，绝不直接返回给前端。
-    """
+    """读取检索配置。返回 {"api_key", "source": "ui"|"env"|"", "updated_at"}，
+    明文 key 只在服务端内部使用，绝不直接返回给前端。"""
     ui_key = (utils.get_setting(db, K_API_KEY, "") or "").strip()
     if ui_key:
         return {"api_key": ui_key, "source": "ui",
                 "updated_at": utils.get_setting(db, K_UPDATED_AT)}
     env_key = (settings.anysearch_api_key or "").strip()
-    if env_key:
-        return {"api_key": env_key, "source": "env", "updated_at": None}
-    return {"api_key": "", "source": "", "updated_at": None}
+    return {"api_key": env_key, "source": "env" if env_key else "", "updated_at": None}
 
 
 def _get_api_key(db=None) -> str:
@@ -105,7 +82,7 @@ def _get_api_key(db=None) -> str:
     else:
         key = (settings.anysearch_api_key or "").strip()
     if not key:
-        raise AnySearchNotConfigured(
+        raise AnySearchError(
             "未配置 AnySearch Key：请在后台「检索配置」页面填写，或设置环境变量 ANYSEARCH_API_KEY"
         )
     return key
@@ -131,10 +108,7 @@ def _parse_snippet(snippet: str) -> tuple[list[str], int | None, str | None]:
     m = _SNIPPET_RE.match(snippet.strip())
     if not m:
         return authors, year, venue
-    try:
-        year = int(m.group("year"))
-    except ValueError:
-        year = None
+    year = int(m.group("year"))  # 正则已保证是 4 位数字
     authors = [
         a.strip()
         for a in m.group("authors").split(",")
@@ -158,13 +132,8 @@ def _parse_arxiv_ym(url: str | None) -> tuple[int, int] | None:
     m = _ARXIV_ID_RE.search(url)
     if not m:
         return None
-    try:
-        yy, mm = int(m.group(1)), int(m.group(2))
-        if not 1 <= mm <= 12:
-            return None
-        return 2000 + yy, mm
-    except ValueError:
-        return None
+    yy, mm = int(m.group(1)), int(m.group(2))  # 正则已保证是数字
+    return (2000 + yy, mm) if 1 <= mm <= 12 else None
 
 
 def _stable_id(url: str | None, title: str) -> str:
@@ -338,7 +307,7 @@ def search_all(queries: list[str], db=None,
     since = since or (until - dt.timedelta(days=6))
     try:
         api_key = _get_api_key(db)  # Key 只解析一次，传给各通道
-    except AnySearchNotConfigured as e:
+    except AnySearchError as e:
         if db is not None:
             utils.log_event(db, "search", "ERROR", f"检索跳过：{e}")
         return []

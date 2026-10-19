@@ -132,7 +132,7 @@ def _search_config_out(db: Session) -> dict:
     cfg = search_service.get_search_config(db)
     return {
         "has_api_key": bool(cfg["api_key"]),
-        "api_key_preview": search_service.mask_api_key(cfg["api_key"]),
+        "api_key_preview": utils.mask_secret(cfg["api_key"]),
         "source": cfg["source"],
         "updated_at": cfg["updated_at"],
     }
